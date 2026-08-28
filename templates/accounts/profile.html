@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Profile · Present{% endblock %}
+
+{% block content %}
+  <div class="mx-auto max-w-md">
+    <h1 class="text-2xl font-semibold tracking-tight">Profile</h1>
+    <p class="mt-2 text-sm text-zinc-600">
+      {% if user.is_student %}
+        Your student ID cannot be changed.
+      {% else %}
+        Use a staff university email.
+      {% endif %}
+    </p>
+
+    <form method="post" class="card mt-6 space-y-4">
+      {% csrf_token %}
+      {% if user_form.non_field_errors or profile_form.non_field_errors %}
+        <div class="text-sm text-red-700">
+          {{ user_form.non_field_errors }}
+          {{ profile_form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="mb-1 block text-sm font-medium" for="{{ user_form.first_name.id_for_label }}">First name</label>
+          {{ user_form.first_name }}
+          {{ user_form.first_name.errors }}
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium" for="{{ user_form.last_name.id_for_label }}">Last name</label>
+          {{ user_form.last_name }}
+          {{ user_form.last_name.errors }}
+        </div>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium" for="{{ user_form.email.id_for_label }}">Email</label>
+        {{ user_form.email }}
+        {{ user_form.email.errors }}
+      </div>
+
+      {% if user.is_student %}
+        <div>
+          <p class="mb-1 text-sm font-medium">Student ID</p>
+          <p class="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+            {{ user.student_profile.student_id }}
+          </p>
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium" for="{{ profile_form.programme.id_for_label }}">Programme</label>
+          {{ profile_form.programme }}
+          {{ profile_form.programme.errors }}
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium" for="{{ profile_form.level.id_for_label }}">Level</label>
+          {{ profile_form.level }}
+          {{ profile_form.level.errors }}
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium" for="{{ profile_form.department.id_for_label }}">Department</label>
+          {{ profile_form.department }}
+          {{ profile_form.department.errors }}
+        </div>
+      {% else %}
+        <div>
+          <label class="mb-1 block text-sm font-medium" for="{{ profile_form.staff_id.id_for_label }}">Staff ID</label>
+          {{ profile_form.staff_id }}
+          {{ profile_form.staff_id.errors }}
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium" for="{{ profile_form.department.id_for_label }}">Department</label>
+          {{ profile_form.department }}
+          {{ profile_form.department.errors }}
+        </div>
+      {% endif %}
+
+      <button type="submit" class="btn-primary w-full">Save profile</button>
+    </form>
+
+    <p class="mt-4 text-sm text-zinc-600">
+      <a class="font-medium underline" href="{% url 'password_change' %}">Change password</a>
+    </p>
+  </div>
+{% endblock %}

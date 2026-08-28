@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard · Present{% endblock %}
+
+{% block content %}
+  <h1 class="text-3xl font-semibold tracking-tight">Welcome, {{ user.first_name|default:user.display_name }}</h1>
+  <p class="mt-2 text-zinc-600">
+    You aren't enrolled by a lecturer. Scan a class QR code when a session starts and you will appear on that course.
+  </p>
+
+  <div class="card mt-8">
+    <h2 class="text-lg font-semibold">My courses</h2>
+    <p class="mt-2 text-sm text-zinc-600">You aren't linked to any courses yet.</p>
+  </div>
+{% endblock %}
