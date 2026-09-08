@@ -2,11 +2,11 @@
 ## Product Requirements Document & Implementation Specification
 
 **Product:** Present  
-**Product type:** Web-based academic attendance management system  
+**Product type:** Web-based academic attendance presence log  
 **Primary users:** Lecturers and students  
 **Primary technology:** Django + PostgreSQL + Django Templates + Tailwind CSS + Vanilla JavaScript  
 **Document status:** MVP implementation specification  
-**Version:** 1.0
+**Version:** 2.0
 
 ---
 
@@ -14,69 +14,72 @@
 
 ## 1.1 Product concept
 
-**Present** is a lightweight attendance management system designed for university and other educational settings.
+**Present** is a lightweight **presence log** for university and other educational settings. It is not the official class register and it does not replace departmental enrolment lists.
 
 The system allows a lecturer to:
 
-1. Create or manage a class.
-2. Add or import the students enrolled in that class.
-3. Start an attendance session.
-4. Have Present generate a temporary QR code.
-5. Display that QR code to students.
-6. Allow students to scan the QR code using their phones.
-7. Verify the student's identity.
-8. Verify that the student's device is physically near the lecturer's device.
-9. Record the student's attendance.
-10. View attendance statistics and individual attendance history.
+1. Create and manage a course (no student roster).
+2. Start an attendance session from a device that can provide GPS.
+3. Display a QR code on a classroom projector (typically a second, logged-in machine).
+4. Watch check-ins on their phone.
+5. Optionally mark a small number of students present by hand (dead phone).
+6. End the session and export who came.
+7. Compare that list to the official class list they already have.
+
+The system allows a student to:
+
+1. Create an account with a university email and student ID.
+2. Scan the QR code with the phone camera.
+3. Sign in or register on that same attendance URL if needed.
+4. Grant location so the server can compare them to the lecturer’s pin.
+5. See that they were marked present, and later see how many sessions they have attended.
 
 The core principle is:
 
-> **Students should be able to mark attendance in seconds, while the system makes it difficult to mark attendance remotely or on behalf of another student.**
+> **Students should be able to mark presence in seconds. Lecturers should get a list they can reconcile. The system should make it inconvenient to check in from elsewhere — not claim it is impossible.**
+
+## 1.2 What Present is not
+
+Present does **not**:
+
+- Maintain the official enrolled roster.
+- Know who was absent (never-scanned official students do not exist in Present).
+- Prove attendance in a way that survives a determined spoof (browser GPS and a static QR are deterrents).
+- Onboard students on the lecturer’s behalf.
 
 ---
 
 # 2. Product Goals
 
-## 2.1 Primary goals
-
 Present must:
 
-- Make attendance extremely fast for students.
-- Make starting an attendance session extremely simple for lecturers.
-- Maintain a persistent student roster.
-- Maintain historical attendance records.
-- Verify student proximity to the lecturer.
-- Prevent duplicate attendance submissions.
-- Discourage attendance on behalf of absent students.
-- Provide lecturers with useful attendance statistics.
-- Work primarily through a web browser.
-- Require no native mobile application for the MVP.
-- Be usable on ordinary smartphones and laptops.
-- Remain simple enough to deploy and maintain by a small development team.
+- Make check-in extremely fast for students who are already signed in.
+- Make starting a session simple for lecturers.
+- Record who checked in, when, and (for audit) where.
+- Compare student GPS to the lecturer pin at check-in so a photo of the QR sent to a friend at home usually fails.
+- Prevent duplicate presence for the same student in the same session.
+- Discourage two students using the same browser device in one session.
+- Compile how many sessions each appearing student has attended.
+- Let the lecturer export lists and reconcile against their official class list.
+- Work in a web browser with no native app.
+- Stay simple enough for a small team to deploy.
 
 ---
 
 # 3. Non-Goals for MVP
 
-The first version should NOT attempt to become a complete university management system.
+Do not build:
 
-The MVP should not include:
-
-- Tuition/payment management.
-- Examination management.
-- Grade management.
-- Course registration across an entire university.
-- Learning management functionality.
-- Assignment submission.
-- Chat/messaging.
-- Facial recognition.
-- Fingerprint authentication.
-- Native iOS application.
-- Native Android application.
-- Complex biometric verification.
-- Artificial intelligence attendance prediction.
-- Automatic timetable generation.
-- University-wide student information system integration.
+- Lecturer-managed student roster, CSV import, or “add student to course.”
+- University SIS / course-registration integration.
+- Official absence registers derived from enrolment.
+- Tuition, exams, grades, LMS, assignments, chat.
+- Facial recognition, fingerprints, or other biometrics.
+- Native iOS or Android apps.
+- Rotating QR codes, Wi-Fi/Bluetooth proximity, or university SSO.
+- Teaching assistants / co-lecturers on one course.
+- AI prediction, automatic timetables.
+- Public maps of student locations in the lecturer UI.
 
 These may be considered later.
 
@@ -84,1456 +87,216 @@ These may be considered later.
 
 # 4. Target Users
 
-Present has two primary user roles.
-
 ## 4.1 Lecturer
 
-The lecturer is responsible for:
-
-- Creating/managing courses.
-- Managing the student roster.
-- Starting attendance sessions.
-- Monitoring attendance in real time.
-- Ending attendance sessions.
-- Reviewing attendance history.
-- Viewing attendance statistics.
+- Registers with a **staff** email domain.
+- Creates and manages their own courses.
+- Starts / extends / ends attendance sessions.
+- Displays the QR on a projector.
+- Monitors check-ins on their own device (names, not a map).
+- Adds a capped number of manual presents for dead phones.
+- Archives or deletes courses.
+- Exports CSV and reviews history.
 
 ## 4.2 Student
 
-The student is responsible for:
+- Registers with a **student** email domain, student ID, name, and password.
+- Scans attendance QR codes.
+- Grants location permission.
+- Views their own presence history.
 
-- Creating/accessing their account.
-- Joining or being enrolled in courses.
-- Scanning attendance QR codes.
-- Granting location permission.
-- Confirming attendance.
-- Viewing their own attendance history.
+A user has exactly one role in MVP: `LECTURER` or `STUDENT`.
 
 ---
 
-# 5. Core User Journey
+# 5. Core User Journeys
 
-The intended experience should be extremely simple.
-
-## First-time setup
+## Lecturer — first-time setup
 
 ```text
-Lecturer creates account
+Register with staff email
         ↓
-Creates course
+Verify email / log in
         ↓
-Imports/adds students
+Create course (code, name, academic period)
         ↓
-Course roster is established
+Course is empty — no roster
 ```
 
-Student:
+## Student — first-time (often at first scan)
 
 ```text
-Student creates account
+Scan QR (iOS Camera / Android Camera opens the browser)
         ↓
-Student is associated with course
+Land on /attendance/<token>/
         ↓
-Student can attend future sessions
+If not logged in: Login | Create account on that same page
+        ↓
+Account created (university email, student ID, name, password)
+        ↓
+Resume check-in (location → present)
 ```
+
+Students may also register from `/register/` before class. The scan path must not dump them on a generic dashboard and lose the session URL.
 
 ## Normal attendance
 
 ```text
-Lecturer opens course
+Lecturer (phone): open course → Start Attendance
         ↓
-Start Attendance
+Phone requests location → pin frozen on the session
         ↓
-Browser requests lecturer location
+Lecturer picks duration (default 15 min) and radius (default 150 m)
         ↓
-Session created
+Session ACTIVE, QR generated
         ↓
-QR code generated
+Lecturer logs into podium PC → Open display (fullscreen QR, countdown, headcount)
         ↓
-Lecturer displays QR
+Students scan with phone cameras
         ↓
-Students scan
+Server: auth, session active, uniqueness, device, GPS vs pin
         ↓
-Student identity verified
+Lecturer phone live list updates (name, student ID, email, time)
         ↓
-Student location obtained
+Optional: lecturer adds up to 3 manual presents
         ↓
-Distance calculated
+End session (or expiry after window + extends)
         ↓
-Validation performed
-        ↓
-Attendance recorded
-        ↓
-Lecturer dashboard updates
+Export CSV, reconcile with official class list
 ```
 
 ---
 
-# 6. Functional Requirements
+# 6. Authentication and identity
 
-## 6.1 Authentication
+Use Django’s authentication system. Custom user model from day one. Passwords never stored in plaintext.
 
-The application must support authentication.
+## 6.1 Lecturer
 
-### Lecturer authentication
+- Register, log in, log out, reset password, view/update profile.
+- Email must match `LECTURER_EMAIL_DOMAINS` (env, e.g. `ug.edu.gh`).
+- Open Gmail/Yahoo lecturer signup is not allowed.
 
-A lecturer should be able to:
+## 6.2 Student
 
-- Register.
-- Log in.
-- Log out.
-- Reset password.
-- View profile.
-- Update profile.
+- Register, log in, log out, reset password, view/update profile.
+- Email must match `STUDENT_EMAIL_DOMAINS` (env, e.g. `st.ug.edu.gh`).
+- Student ID is unique and **immutable after registration**.
+- Name may be edited.
+- Email may be changed only to another address on an allowed student domain, and must remain unique.
+- Password change and reset are allowed. Outbound email is **MVP**, not future work.
 
-### Student authentication
+## 6.3 Scan-time auth
 
-A student should be able to:
+`/attendance/<token>/` must support:
 
-- Register.
-- Log in.
-- Log out.
-- Reset password.
-- View profile.
-- Update profile.
+- Logged-in student → continue to location / check-in.
+- Anonymous → compact Login | Create account **on that page** (or with `next=` that returns to the same token URL).
+- After success, do not require the student to find the course manually.
 
-The MVP should use Django's authentication system rather than implementing password authentication from scratch.
+iOS Camera opens Safari. The student must be able to complete registration and check-in in that browser session. Do not assume they previously logged in on Chrome.
 
-Passwords must never be stored in plaintext.
+## 6.4 Identity honesty
+
+First claimant of a student ID wins for registered accounts. The live list and CSV always show **student ID + name + email** so the lecturer can spot mismatches when reconciling. MVP does not require email local-part to equal student ID.
 
 ---
 
-# 7. User Roles and Permissions
+# 7. Roles and permissions
 
-Role-based authorization must be enforced on the server.
+Enforced on the server.
 
-## Lecturer permissions
+## Lecturer may
 
-A lecturer can:
+- Create, edit, archive, and (with confirmation) delete their own courses.
+- Start, extend, end, and update-location on their sessions.
+- Open the projector display for their sessions.
+- View live and historical check-ins for their courses.
+- Create capped manual presents on an ACTIVE session they own.
+- Export CSV for their courses/sessions.
 
-- Create courses.
-- Edit their courses.
-- Delete/archive their courses.
-- Add students.
-- Import students.
-- Remove students from a course.
-- View their course roster.
-- Start attendance sessions.
-- End attendance sessions.
-- View attendance records.
-- View attendance statistics.
+A lecturer must not modify another lecturer’s courses.
 
-A lecturer must NOT be able to modify courses belonging to another lecturer.
+## Student may
 
-## Student permissions
+- View their own profile and presence history.
+- Check in to an ACTIVE session via its token URL.
+- View courses they have appeared in (`CourseParticipant`).
 
-A student can:
+## Student must not
 
-- View their own profile.
-- View courses they belong to.
-- Scan active attendance sessions.
-- View their own attendance history.
-
-A student must NOT be able to:
-
-- Start attendance.
-- End attendance.
+- Start or end sessions.
+- See another student’s history.
+- See raw GPS of anyone.
+- Open lecturer display/live-list endpoints.
 - Modify attendance records.
-- View another student's attendance history.
-- Modify course rosters.
 
 ---
 
-# 8. Course Management
+# 8. Course management
 
-A lecturer must be able to create a course.
+A lecturer creates a course. No students are attached up front.
 
 Required fields:
 
-- Course code
+- Course code (e.g. `BIOC 301`)
 - Course name
-- Semester/academic period
+- Academic period (e.g. `2026/2027 First Semester`)
 - Optional description
 
-Example:
+Each course belongs to exactly one lecturer in MVP.
 
-```text
-Course Code: BIOC 301
-Course Name: Clinical Biochemistry
-Semester: 2026/2027 First Semester
-```
+Constraint: do not accidentally duplicate `(lecturer, code, academic_period)`.
 
-Each course belongs to exactly one lecturer in the MVP.
+## 8.1 Dashboard filter
 
-A lecturer can have multiple courses.
+The lecturer dashboard **filters by academic period** (current period default).
 
----
+## 8.2 Archive
 
-# 9. Student Roster Management
+Archive hides the course from the default dashboard and start-attendance list. History is kept. Unarchive is allowed.
 
-A course must have a persistent roster.
+## 8.3 Delete
 
-A lecturer should be able to:
+Lecturer may delete a course with **typed confirmation** (e.g. type the course code). Delete **cascades**: sessions, attendance records, and participants for that course are removed.
 
-### Add individual student
-
-Fields:
-
-- Student ID
-- Full name
-- Email
-
-Optional:
-
-- Programme
-- Level
-- Department
-
-### Import students
-
-The preferred bulk onboarding method is CSV.
-
-Example:
-
-```csv
-student_id,full_name,email,programme,level
-10982345,John Mensah,john@example.com,Biochemistry,300
-10982346,Ama Boateng,ama@example.com,Biochemistry,300
-10982347,Kwame Asare,kwame@example.com,Biochemistry,300
-```
-
-The import system should:
-
-1. Validate the file.
-2. Validate required columns.
-3. Detect duplicate student IDs.
-4. Detect malformed email addresses.
-5. Display an import preview.
-6. Report errors before committing valid records.
-7. Allow the lecturer to confirm the import.
-8. Create or associate student accounts as appropriate.
-9. Create course enrollments.
-
-The import process must not silently create corrupted records.
+Use delete for mistakes. Use archive at end of semester.
 
 ---
 
-# 10. Student Identity Model
+# 9. Course participation (not a roster)
 
-Students should have a persistent identity across courses.
+There is no lecturer-managed enrolment.
 
-The student should NOT be recreated as a completely new person every time they join a course.
+`CourseParticipant` is created when:
 
-For example:
+- A registered student successfully checks in to a session of that course, or
+- A manual stub row is later **merged** onto a newly registered account that matches `student_id`.
 
-```text
-Student
-John Mensah
-Student ID: 10982345
-```
+It exists so “My Courses” and “18 of 20 sessions” are cheap queries. It is not an official class list. Anyone with a valid student account who is near the pin can appear.
 
-may be enrolled in:
-
-```text
-BIOC 301
-BIOC 401
-CELL 302
-```
-
-Attendance remains attached to the student and the specific course/session.
+An inactive participant flag is not required for MVP.
 
 ---
 
-# 11. Enrollment
+# 10. Attendance session
 
-A many-to-many relationship should exist conceptually between students and courses.
+Created when the lecturer starts attendance.
 
-```text
-Student
-   │
-   ├── Enrollment → BIOC 301
-   ├── Enrollment → BIOC 401
-   └── Enrollment → CELL 302
-```
-
-The enrollment record should contain:
-
-- Student
-- Course
-- Enrollment date
-- Active/inactive status
-
-An inactive student should not be able to mark attendance for that course.
-
----
-
-# 12. Attendance Session
-
-Every attendance event is represented by an attendance session.
-
-Example:
-
-```text
-BIOC 301
-August 27, 2026
-10:00 AM
-```
-
-The lecturer clicks:
-
-**Start Attendance**
-
-The backend creates an attendance session.
-
-The session must contain:
+Must contain:
 
 - Course
-- Lecturer
-- Start time
-- Expiration time
+- Started at, expires at, ended at (nullable)
 - Status
-- Lecturer latitude
-- Lecturer longitude
-- Lecturer location accuracy
-- Allowed radius
-- Unique session token
+- Lecturer latitude, longitude, accuracy
+- Allowed radius (metres)
+- Unique session token (cryptographically unpredictable)
+- Extend count
 - Creation timestamp
 
----
+## 10.1 Status
 
-# 13. Session Lifecycle
-
-An attendance session has three possible states:
-
-```text
-SCHEDULED / CREATED
-        ↓
-ACTIVE
-        ↓
-ENDED
-```
-
-For MVP, sessions can simply be created directly as ACTIVE.
-
-A session automatically becomes invalid when its expiration time is reached.
-
-The lecturer can manually end a session.
-
-Once ended:
-
-- New attendance submissions must be rejected.
-- Existing attendance records must remain unchanged.
-- The QR code must no longer produce a valid attendance transaction.
-
----
-
-# 14. Session Expiration
-
-Attendance sessions should have a short configurable duration.
-
-Default:
-
-```text
-10 minutes
-```
-
-Possible options:
-
-```text
-5 minutes
-10 minutes
-15 minutes
-20 minutes
-30 minutes
-```
-
-The default should be 10 minutes.
-
-The QR code must not remain valid indefinitely.
-
----
-
-# 15. QR Code
-
-When a lecturer starts a session, Present generates a unique QR code.
-
-The QR code must contain a session-specific URL/token.
-
-Example concept:
-
-```text
-https://present.example.com/attendance/scan/<secure-session-token>
-```
-
-The token must be:
-
-- Cryptographically unpredictable.
-- Unique.
-- Associated with exactly one session.
-- Invalid after session expiration.
-- Invalid after the session is ended.
-
-Do not use predictable sequential IDs as the sole QR authentication mechanism.
-
-Bad:
-
-```text
-/session/123
-/session/124
-/session/125
-```
-
-Prefer a random secure token.
-
----
-
-# 16. QR Code Rotation
-
-For the MVP, the QR code may remain constant for the duration of the session.
-
-However, the architecture should allow future implementation of rotating QR codes.
-
-Future enhancement:
-
-```text
-QR token changes every 20–30 seconds
-```
-
-This makes screenshots and photographs of the QR code less useful.
-
-The MVP does not require rotation.
-
----
-
-# 17. Student Attendance Flow
-
-When a student scans the QR code:
-
-```text
-QR
- ↓
-Attendance page
- ↓
-Determine logged-in student
- ↓
-Validate session
- ↓
-Validate course enrollment
- ↓
-Request location
- ↓
-Collect device information
- ↓
-Submit attendance
- ↓
-Server validates
- ↓
-Attendance recorded
-```
-
-The student should see a very clear interface.
-
-Example:
-
-```text
-BIOC 301
-
-Attendance Session
-
-John Mensah
-
-We need your location to verify
-that you are in the classroom.
-
-[ Allow Location & Mark Present ]
-```
-
----
-
-# 18. Geolocation
-
-Geolocation is a core feature.
-
-The lecturer's device establishes the reference location.
-
-When starting a session, the lecturer's browser should request location permission.
-
-The browser Geolocation API should be used.
-
-The lecturer location must contain:
-
-```text
-latitude
-longitude
-accuracy
-timestamp
-```
-
-The student's device must similarly provide:
-
-```text
-latitude
-longitude
-accuracy
-timestamp
-```
-
----
-
-# 19. Location Verification
-
-The server must calculate the distance between:
-
-```text
-Lecturer location
-        ↓
-Student location
-```
-
-The calculation should use a geographic distance algorithm such as the Haversine formula.
-
-Conceptually:
-
-```text
-distance = haversine(
-    lecturer_latitude,
-    lecturer_longitude,
-    student_latitude,
-    student_longitude
-)
-```
-
-The result should be measured in metres.
-
-Example:
-
-```text
-Lecturer:
-5.6508, -0.1869
-
-Student:
-5.6511, -0.1872
-
-Distance:
-approximately 45 metres
-```
-
----
-
-# 20. Attendance Radius
-
-The system should have a default attendance radius.
-
-Recommended default:
-
-```text
-100 metres
-```
-
-This should be configurable.
-
-Potential options:
-
-```text
-50 m
-100 m
-150 m
-200 m
-```
-
-The MVP should default to 100 m.
-
-The radius belongs to the attendance session so that historical attendance records retain the conditions under which they were recorded.
-
----
-
-# 21. GPS Accuracy
-
-GPS is not perfectly precise, especially indoors.
-
-Therefore the system must store location accuracy.
-
-Example:
-
-```text
-student_latitude: 5.6509
-student_longitude: -0.1870
-student_accuracy: 18m
-distance: 42m
-```
-
-The system should not blindly treat GPS coordinates as exact.
-
-For MVP, use the calculated distance against the configured radius while storing accuracy for auditing.
-
-A future version can implement more sophisticated confidence rules.
-
----
-
-# 22. Location Validation Rules
-
-Attendance should be rejected when:
-
-- Location permission is denied.
-- Coordinates cannot be obtained.
-- Coordinates are invalid.
-- The location is clearly stale.
-- The session has expired.
-- The student is outside the permitted radius.
-
-Example:
-
-```text
-Distance: 37m
-Radius: 100m
-
-→ ACCEPT
-```
-
-```text
-Distance: 417m
-Radius: 100m
-
-→ REJECT
-```
-
-The UI should explain the rejection clearly without exposing unnecessary internal security information.
-
-Example:
-
-> You appear to be outside the attendance area. Please make sure you are in the classroom and try again.
-
----
-
-# 23. Location Timestamp
-
-The student location should be recent.
-
-Do not accept a location reading that is hours old.
-
-The frontend should request a fresh position when the student checks in.
-
-The backend should validate the supplied timestamp against the current server time.
-
-Server time must be authoritative.
-
-Do not trust the student's device clock.
-
----
-
-# 24. One Student — One Attendance
-
-A student may only be marked present once per session.
-
-Database-level uniqueness should enforce:
-
-```text
-UNIQUE(session_id, student_id)
-```
-
-If the student attempts to scan again:
-
-```text
-Attendance already recorded.
-```
-
-The system must not create a second record.
-
----
-
-# 25. One Device — One Attendance
-
-The MVP should also attempt to prevent multiple students from using the same device during one attendance session.
-
-A browser-generated device identifier should be used.
-
-The application can generate a persistent random identifier and store it in a browser cookie/local storage mechanism.
-
-Conceptually:
-
-```text
-device_id = random UUID
-```
-
-Example:
-
-```text
-8f3a0e4d-...
-```
-
-The server records the device identifier with attendance.
-
-A session should reject a second attendance attempt from the same device where the policy is configured as one-device-per-session.
-
-Important:
-
-> Browser-based device identification is not a perfect hardware identity.
-
-Users can clear storage, switch browsers, use private browsing, or manipulate the client.
-
-Therefore this mechanism should be considered a **deterrent**, not an absolute security guarantee.
-
----
-
-# 26. Device Validation
-
-The backend should check:
-
-```text
-Does this device already have an attendance record
-for this session?
-```
-
-If yes:
-
-```text
-Reject.
-```
-
-This check must happen server-side.
-
-Do not rely solely on JavaScript.
-
----
-
-# 27. Attendance Transaction
-
-The attendance submission should conceptually contain:
-
-```json
-{
-    "session_token": "...",
-    "latitude": 5.6509,
-    "longitude": -0.1870,
-    "accuracy": 18,
-    "location_timestamp": "...",
-    "device_id": "..."
-}
-```
-
-The server determines the authenticated student from the authenticated session/token.
-
-Do not trust a client-provided `student_id`.
-
-A malicious client should not be able to submit:
-
-```json
-{
-    "student_id": "someone_else"
-}
-```
-
-and mark another student present.
-
----
-
-# 28. Server-Side Validation Sequence
-
-The attendance endpoint should validate in this approximate order:
-
-```text
-1. Is the user authenticated?
-        ↓
-2. Is the user a student?
-        ↓
-3. Does the session exist?
-        ↓
-4. Is the session active?
-        ↓
-5. Has the session expired?
-        ↓
-6. Is the student enrolled in the course?
-        ↓
-7. Has this student already attended?
-        ↓
-8. Has this device already been used?
-        ↓
-9. Is the location valid?
-        ↓
-10. Is the location timestamp acceptable?
-        ↓
-11. Calculate distance
-        ↓
-12. Is distance within allowed radius?
-        ↓
-13. Create attendance record
-        ↓
-14. Return success
-```
-
-All critical validation must happen on the server.
-
----
-
-# 29. Race Conditions
-
-The system must account for two simultaneous requests.
-
-For example, a student could rapidly submit the attendance request twice.
-
-The application should use:
-
-- Database uniqueness constraints.
-- Transactions where appropriate.
-- Proper error handling.
-
-The database must ultimately guarantee that:
-
-```text
-one student + one session = max one attendance record
-```
-
----
-
-# 30. Attendance Record
-
-An attendance record should store sufficient information for auditing.
-
-Recommended fields:
-
-```text
-id
-session_id
-student_id
-timestamp
-latitude
-longitude
-location_accuracy
-distance_from_lecturer
-device_id
-status
-created_at
-```
-
-Potential statuses:
-
-```text
-present
-```
-
-The MVP does not need complicated statuses unless required later.
-
----
-
-# 31. Attendance Dashboard
-
-The lecturer should see live attendance information.
-
-Example:
-
-```text
-BIOC 301
-Attendance Session
-
-┌───────────────────────────────┐
-│ Present                       │
-│ 42 / 57                       │
-└───────────────────────────────┘
-
-Session expires in
-07:32
-
-[ QR CODE ]
-
-Students
-
-✓ John Mensah
-✓ Ama Boateng
-✓ Kwame Asare
-✓ Sarah Owusu
-...
-```
-
-The lecturer should not need to refresh the entire page manually.
-
----
-
-# 32. Live Attendance Updates
-
-For the MVP, use polling rather than WebSockets.
-
-Example:
-
-```text
-Browser
-   ↓
-GET /attendance/sessions/<id>/status
-   ↓
-every 3–5 seconds
-```
-
-This is simpler and sufficient for a classroom-sized application.
-
-Future versions may use:
-
-- WebSockets.
-- Django Channels.
-- Server-Sent Events.
-
-Do not introduce WebSockets in the MVP unless there is a demonstrated need.
-
----
-
-# 33. Attendance Statistics
-
-The course dashboard should display:
-
-```text
-Total students
-Present
-Absent
-Attendance percentage
-```
-
-Example:
-
-```text
-Students: 57
-Present: 49
-Absent: 8
-Attendance: 86%
-```
-
----
-
-# 34. Individual Student Attendance
-
-Lecturers should be able to select a student and see their history.
-
-Example:
-
-```text
-John Mensah
-
-BIOC 301
-
-Sessions: 20
-Present: 18
-Absent: 2
-Attendance rate: 90%
-
-Date          Status
---------------------------------
-Aug 27        Present
-Aug 24        Present
-Aug 20        Absent
-Aug 17        Present
-Aug 13        Present
-```
-
----
-
-# 35. Course Attendance History
-
-The lecturer should be able to view historical sessions.
-
-Example:
-
-```text
-BIOC 301
-
-Attendance Sessions
-
-Date          Present    Total    Rate
-----------------------------------------
-Aug 27        49         57       86%
-Aug 24        52         57       91%
-Aug 20        48         57       84%
-Aug 17        50         57       88%
-```
-
-Selecting a session should show its detailed attendance records.
-
----
-
-# 36. Student Dashboard
-
-The student dashboard should remain simple.
-
-Example:
-
-```text
-Welcome, John
-
-My Courses
-
-BIOC 301
-Attendance: 90%
-
-BIOC 401
-Attendance: 94%
-```
-
-Selecting a course:
-
-```text
-BIOC 301
-
-Attendance
-18 / 20
-
-90%
-
-Recent sessions:
-✓ Aug 27
-✓ Aug 24
-✗ Aug 20
-✓ Aug 17
-```
-
----
-
-# 37. User Interface Principles
-
-Present should feel:
-
-- Clean.
-- Fast.
-- Modern.
-- Academic.
-- Professional.
-- Minimal.
-
-Avoid:
-
-- Excessive animations.
-- Cluttered dashboards.
-- Huge navigation systems.
-- Unnecessary charts.
-- Excessive color usage.
-- Complicated forms.
-
-The primary action should always be obvious.
-
----
-
-# 38. Lecturer Navigation
-
-Recommended navigation:
-
-```text
-Dashboard
-Courses
-Attendance
-Students
-Profile
-```
-
-Potentially:
-
-```text
-Settings
-```
-
-later.
-
----
-
-# 39. Student Navigation
-
-Recommended:
-
-```text
-Dashboard
-My Courses
-Attendance
-Profile
-```
-
-The student should not see lecturer functionality.
-
----
-
-# 40. Lecturer Dashboard
-
-The dashboard should show:
-
-```text
-Good morning, Dr. Mensah
-
-Your Courses
-
-BIOC 301
-Clinical Biochemistry
-57 students
-
-[ Start Attendance ]
-
-BIOC 401
-Advanced Biochemistry
-42 students
-
-[ Start Attendance ]
-```
-
-The lecturer's most common action should be immediately accessible.
-
----
-
-# 41. Attendance Session Interface
-
-When active:
-
-```text
-BIOC 301
-Attendance
-
-Session active
-08:42 remaining
-
-             ┌───────────┐
-             │           │
-             │ QR CODE   │
-             │           │
-             └───────────┘
-
-47 / 57 Present
-
-[ End Session ]
-
-Recent check-ins
-
-✓ John Mensah
-✓ Ama Boateng
-✓ Kwame Asare
-```
-
----
-
-# 42. Student Scan Interface
-
-The student experience should be optimized for mobile.
-
-Initial state:
-
-```text
-BIOC 301
-
-Attendance
-
-Checking your session...
-```
-
-Then:
-
-```text
-Location required
-
-Present needs your location to
-verify that you are attending
-from the classroom.
-
-[ Allow Location ]
-```
-
-Success:
-
-```text
-✓ You're Present
-
-BIOC 301
-
-Attendance recorded at 10:04 AM.
-```
-
-Failure:
-
-```text
-Attendance not recorded
-
-You appear to be outside the
-attendance area.
-
-Please move closer to the class
-and try again.
-```
-
----
-
-# 43. Responsive Design
-
-The application must work well on:
-
-- Desktop.
-- Laptop.
-- Tablet.
-- Android phones.
-- iPhones.
-
-The QR display should be particularly optimized for:
-
-- Laptop screen.
-- Projector.
-- Large classroom display.
-
-The student scanning interface should be mobile-first.
-
----
-
-# 44. Technology Stack
-
-## Backend
-
-**Django**
-
-Use Django for:
-
-- Application architecture.
-- Authentication.
-- Routing.
-- ORM.
-- Database integration.
-- Server-side validation.
-- Templates.
-- Admin interface.
-
-## Database
-
-**PostgreSQL**
-
-Use PostgreSQL for production and preferably development.
-
-## Frontend
-
-**Django Templates + Vanilla JavaScript**
-
-Do not introduce React in the MVP.
-
-## Styling
-
-**Tailwind CSS**
-
-Use Tailwind for the application UI.
-
-## Client-side functionality
-
-Vanilla JavaScript should handle:
-
-- Geolocation.
-- Attendance submission.
-- QR scanning if needed.
-- Countdown timers.
-- Polling.
-- Dynamic UI updates.
-- Form interactions.
-
----
-
-# 45. Recommended Django Application Structure
-
-Use separate Django apps according to domain.
-
-```text
-present/
-│
-├── manage.py
-│
-├── config/
-│   ├── __init__.py
-│   ├── settings.py
-│   ├── urls.py
-│   ├── asgi.py
-│   └── wsgi.py
-│
-├── accounts/
-│   ├── migrations/
-│   ├── admin.py
-│   ├── apps.py
-│   ├── models.py
-│   ├── urls.py
-│   ├── views.py
-│   ├── forms.py
-│   └── tests.py
-│
-├── courses/
-│   ├── migrations/
-│   ├── admin.py
-│   ├── apps.py
-│   ├── models.py
-│   ├── urls.py
-│   ├── views.py
-│   ├── forms.py
-│   └── tests.py
-│
-├── attendance/
-│   ├── migrations/
-│   ├── admin.py
-│   ├── apps.py
-│   ├── models.py
-│   ├── urls.py
-│   ├── views.py
-│   ├── services.py
-│   ├── validators.py
-│   └── tests.py
-│
-├── templates/
-│   ├── base.html
-│   ├── registration/
-│   ├── accounts/
-│   ├── courses/
-│   ├── lecturer/
-│   ├── student/
-│   └── attendance/
-│
-├── static/
-│   ├── css/
-│   ├── js/
-│   └── images/
-│
-├── requirements/
-│   ├── base.txt
-│   ├── development.txt
-│   └── production.txt
-│
-└── .env
-```
-
----
-
-# 46. Database Model
-
-## User
-
-Use Django's authentication system.
-
-Recommended approach:
-
-Use a custom user model from the beginning.
-
-Fields:
-
-```text
-id
-email
-password
-first_name
-last_name
-role
-is_active
-is_staff
-is_superuser
-date_joined
-```
-
-Role:
-
-```text
-LECTURER
-STUDENT
-```
-
-Email should be unique.
-
----
-
-# 47. Student Profile
-
-Potential separate profile:
-
-```text
-StudentProfile
-
-id
-user
-student_id
-programme
-level
-department
-created_at
-updated_at
-```
-
-`student_id` should be unique.
-
----
-
-# 48. Lecturer Profile
-
-```text
-LecturerProfile
-
-id
-user
-staff_id
-department
-created_at
-updated_at
-```
-
-Staff ID may be optional in the MVP.
-
----
-
-# 49. Course Model
-
-```text
-Course
-
-id
-lecturer
-code
-name
-description
-academic_period
-is_active
-created_at
-updated_at
-```
-
-Potential constraint:
-
-```text
-lecturer + code + academic_period
-```
-
-should not accidentally create duplicate courses.
-
----
-
-# 50. Enrollment Model
-
-```text
-Enrollment
-
-id
-student
-course
-enrolled_at
-is_active
-created_at
-updated_at
-```
-
-Database constraint:
-
-```text
-UNIQUE(student, course)
-```
-
----
-
-# 51. Attendance Session Model
-
-```text
-AttendanceSession
-
-id
-course
-token
-started_at
-expires_at
-ended_at
-status
-lecturer_latitude
-lecturer_longitude
-lecturer_accuracy
-allowed_radius
-created_at
-```
-
-Token must be unique.
-
-Status:
+Stored statuses:
 
 ```text
 ACTIVE
@@ -1541,298 +304,590 @@ ENDED
 EXPIRED
 ```
 
+MVP creates sessions as `ACTIVE`. No scheduled/created state.
+
+- Lecturer **End** → `ENDED`, `ended_at` = server now. No new check-ins (scan or manual).
+- Server time ≥ `expires_at` and not already `ENDED` → treat as `EXPIRED` (store or derive consistently; either is fine if check-in always uses server time vs `expires_at` / `ended_at`).
+- Historical sessions remain visible.
+
+Once ended or expired, existing records are not changed by new check-ins.
+
+## 10.2 One active session
+
+At most **one ACTIVE session per course**. Starting another is rejected until the current one is ended or expired. Sequential sessions the same day (lecture then lab) are allowed.
+
+## 10.3 Duration and extend
+
+- Lecturer picks duration at start: **5 / 10 / 15 / 20 / 30 minutes**.
+- **Default: 15 minutes.**
+- While ACTIVE, **+5 minutes**, maximum **3 extends**.
+- End always wins immediately.
+
+## 10.4 Radius
+
+Belongs to the session so history keeps the rule that applied.
+
+- Options: **50 / 100 / 150 / 200 / 300 metres**.
+- **Default: 150 metres.**
+
+## 10.5 Lecturer pin
+
+The pin is why a friend at home should fail: check-in compares **student GPS to this pin**, not to a campus centroid.
+
+- Frozen when the session starts. Lecturer cannot start without a location (retry UI).
+- **Update location** on the lecturer phone replaces the pin. **New** check-ins use the new pin. Already-present rows stay as recorded (original distance kept).
+
+Do not continuously stream lecturer GPS. Do not require GPS from the projector PC.
+
 ---
 
-# 52. Attendance Record Model
+# 11. QR code and projector display
+
+QR encodes a session-specific URL:
 
 ```text
-AttendanceRecord
+https://present.example.com/attendance/<secure-session-token>/
+```
 
+Token: unique, unguessable, invalid after end/expiry. Do not use sequential `/session/123` as the only secret.
+
+MVP: QR is **static** for the session. Rotating QR is future.
+
+## 11.1 Two-device classroom
+
+Typical hall: GPS-capable phone vs podium PC on HDMI.
+
+1. Lecturer starts the session **on the phone** (location + live name list).
+2. Lecturer **logs into Present on the podium PC** and opens **Open display** for this session.
+3. Display is **fullscreen**: large QR, countdown, **headcount only**.
+4. **No names, student IDs, or emails on the projector.**
+
+The live name list stays on the phone.
+
+If they leave the podium PC logged in, the projector still must not have shown the class list. Prefer a dedicated display URL that cannot render names even for a logged-in lecturer.
+
+Students use the **phone’s native camera**. No in-app scanner in MVP.
+
+---
+
+# 12. Student check-in
+
+```text
+QR → attendance page → authenticated student
+  → session exists, ACTIVE, not expired
+  → not already present (as this user)
+  → device_id not already used this session
+  → fresh browser geolocation
+  → POST coordinates
+  → server Haversine vs lecturer pin
+  → within radius → AttendanceRecord (scan)
+  → CourseParticipant if needed
+```
+
+Student UI: course name, their name, location prompt, success or a clear retry. No course search. No typing a code.
+
+### Success
+
+```text
+You're Present
+BIOC 301
+Attendance recorded at 10:04 AM
+```
+
+### Outside radius
+
+```text
+Attendance not recorded
+You appear to be outside the attendance area.
+Please move closer to the class and try again.
+```
+
+Do not explain Haversine, pin coordinates, or other internals.
+
+### Location denied / unavailable
+
+Do not mark present. Ask them to enable location and retry.
+
+---
+
+# 13. Geolocation (anti remote-scan)
+
+**Purpose:** make “send a photo of the QR to a friend at home” fail for ordinary students.
+
+**Mechanism:** at check-in, the **server** computes distance between lecturer pin and student-supplied coordinates. If distance > session radius, reject.
+
+**Honesty:** the client chooses the numbers. Mock location, DevTools, and shared logins still work. Present records **presence with friction**, not cryptographic proof someone stood in the room.
+
+## 13.1 What is stored vs what is shown
+
+Store on the scan record:
+
+- Student latitude, longitude, accuracy
+- Distance from lecturer pin (server-calculated)
+- Lecturer pin is already on the session
+
+Lecturer UI and CSV for lecturers: **name, student ID, email, time, source (scan/manual)**. Not coordinates, not a map, not accuracy.
+
+Admin (Django admin) may see coordinates for audit.
+
+## 13.2 Rules
+
+Reject check-in when:
+
+- Location permission denied / coordinates missing / invalid
+- Session ended or expired
+- Distance > allowed radius
+
+Store accuracy; **do not** add accuracy into the pass/fail formula in MVP (no `distance <= radius + accuracy` buffer, no reject-on-poor-accuracy). Gate is Haversine vs radius.
+
+## 13.3 Timestamps
+
+Request a fresh position on the client. **Server time** is authoritative for `recorded_at` and session expiry.
+
+Do not trust client `location_timestamp` as a security control. If sent, it may be stored for debugging; it must not be what makes a location “fresh.”
+
+---
+
+# 14. Uniqueness and devices
+
+## 14.1 One student, one session
+
+For a linked user:
+
+```text
+UNIQUE(session_id, student_id) WHERE student_id IS NOT NULL
+```
+
+Rescan → “Attendance already recorded.”
+
+## 14.2 One device, one session (scan path)
+
+Persistent random UUID in cookie/localStorage (`device.js`). Server stores it on scan records.
+
+If this `device_id` already has a scan record for the session → reject. Clear, non-technical error.
+
+This is a **deterrent**. Private browsing, cleared storage, and another browser bypass it.
+
+`device_id` must be a non-empty UUID on scan submissions. Missing/empty must not collapse everyone into one key.
+
+Manual presents have no device check.
+
+Do not collect IMEI, MAC, SIM, or serial.
+
+## 14.3 Race conditions
+
+Two parallel submits: uniqueness constraints + transactions. One success, one duplicate error. Never two rows.
+
+---
+
+# 15. Manual present (dead phone)
+
+Only the course owner, only while the session is **ACTIVE**.
+
+- Lecturer types **student ID + full name**.
+- Record is `source = manual`, **no student GPS**.
+- **Cap: 3 per session.**
+- CSV and UI mark them as manual.
+
+### Matching
+
+1. If a registered student already has this `student_id`:
+   - If they already have a record this session → reject.
+   - Else create a linked manual record (`student` FK set).
+2. If nobody is registered with that ID:
+   - Create a **stub row** on this session: `stub_student_id`, `stub_name`, `student` null.
+   - Do **not** create a User. Do **not** reserve the ID globally.
+
+Same ID may be stubbed in another course’s session.
+
+### Merge
+
+When a student **registers** with a `student_id` that matches existing stub rows, attach those rows (`student` FK) and create `CourseParticipant` as needed. Name on the stub is not a merge key.
+
+Typos do not lock anyone out of Present. An impostor can still first-claim an ID at registration (same as any self-serve ID).
+
+Lecturers cannot delete check-ins in MVP (no crasher-remove). Extra names stay; ignore them on the official list.
+
+---
+
+# 16. Server-side validation (scan)
+
+Approximate order:
+
+```text
+1. Authenticated
+2. Role is student
+3. Session exists
+4. Session ACTIVE and not past expires_at / ended_at
+5. This user has not already attended
+6. device_id valid and not already used this session
+7. Coordinates present and valid
+8. Haversine vs current lecturer pin
+9. Distance ≤ allowed_radius
+10. Create record (transaction)
+11. Ensure CourseParticipant
+12. Return success
+```
+
+Never trust client `student_id`, distance, attendance status, or lecturer identity.
+
+Manual path: lecturer auth, owns course, session ACTIVE, cap, ID/name validation, uniqueness, no GPS.
+
+---
+
+# 17. Attendance record
+
+```text
 id
 session
-student
-device_id
-student_latitude
-student_longitude
-student_accuracy
-distance_from_lecturer
+student (nullable)
+stub_student_id (nullable)
+stub_name (nullable)
+source          scan | manual
+device_id       (scan; nullable for manual)
+student_latitude / longitude / accuracy  (scan; null for manual)
+distance_from_lecturer                   (scan; null for manual)
 recorded_at
-status
 created_at
 ```
 
-Database constraints:
+Constraints:
 
-```text
-UNIQUE(session, student)
-```
+- Scan: `student` required, coords required, `source=scan`.
+- Manual linked: `student` set, coords null, `source=manual`.
+- Manual stub: `student` null, stub fields set, `source=manual`.
+- At most one linked record per `(session, student)`.
+- At most one stub per `(session, stub_student_id)`.
 
-A separate uniqueness strategy should be implemented for:
+Failed scan attempts are **not** stored as records. Log them server-side. Lecturer does not see a reject list.
 
-```text
-session + device_id
-```
-
-if the one-device-per-session rule is enforced strictly.
+Status on the record is unnecessary in MVP: existence means present.
 
 ---
 
-# 53. Device Identifier
-
-For MVP:
+# 18. Lecturer live session (phone)
 
 ```text
-device_id
+BIOC 301
+Session active
+08:42 remaining   [ +5 min ]  (if extends remain)
+[ Update location ]
+
+47 present
+
+[ Open display instructions / link ]
+
+Students (newest first)
+✓ John Mensah    10982345    john@st.ug.edu.gh    10:04
+✓ Ama Boateng    10982346    ama@st.ug.edu.gh     10:04   Manual
+
+[ Add manual present ]   (if under cap)
+[ End session ]
 ```
 
-should be a randomly generated UUID stored client-side.
+Polling every **3–5 seconds** (`GET` session status, **lecturer-auth only**). No WebSockets in MVP.
 
-Do not attempt to fingerprint hardware.
-
-Do not collect:
-
-- IMEI.
-- MAC address.
-- SIM number.
-- Phone serial number.
-
-The application should use the minimum device information necessary.
+The QR **token must not** authorize this name list. Projector display endpoint returns QR payload + count + remaining time only.
 
 ---
 
-# 54. API / URL Design
+# 19. Statistics
 
-Even though Django templates are being used, the application should have clean JSON endpoints for dynamic operations.
+There is no enrolled denominator. Do not show `49/57` or class `%` against a roster.
 
-## Authentication
+**Session:** headcount of present rows (scan + manual).
+
+**Student who has appeared on this course** (via `CourseParticipant` or records):
+
+```text
+attendance_rate = sessions_attended / sessions_held × 100
+```
+
+`sessions_held` = **all completed** (`ENDED` or `EXPIRED`) sessions for that **course**, including those before the student first appeared. A week-6 first appearance shows `1/6`.
+
+`sessions_attended` = distinct sessions with a record linked to that student (after merge, stubs count).
+
+**Course history table:** date, headcount (not rate-vs-enrolment).
+
+---
+
+# 20. CSV export (MVP)
+
+Required. Without export, “reconcile with the class list” is not a product.
+
+**One session**
+
+```text
+student_id, full_name, email, recorded_at, source
+```
+
+`email` empty for unmerged stubs. `source` is `scan` or `manual`.
+
+**Course rollup**
+
+```text
+student_id, full_name, email, sessions_attended, sessions_held, rate
+```
+
+Unmerged stubs appear on session CSV; they appear on rollup only after merge (or as stub ID/name with attended count of stubbed sessions — implement session CSV first; rollup of unmerged stubs: include them as ID/name, email blank, attended = sessions they were stubbed in).
+
+No PDF/Excel required.
+
+---
+
+# 21. Student dashboard
+
+```text
+My Courses   (CourseParticipant only)
+
+BIOC 301
+18 / 20 sessions
+```
+
+Course detail: their check-ins (dates, scan vs manual). No other students. No GPS.
+
+Empty state if they have never appeared in a course.
+
+---
+
+# 22. Navigation and UI
+
+## Lecturer
+
+```text
+Dashboard | Courses | Attendance | Profile
+```
+
+Dashboard: greeting, period filter, courses with **Start Attendance** (disabled if an ACTIVE session already exists — show **Open session** instead).
+
+## Student
+
+```text
+Dashboard | My Courses | Profile
+```
+
+No lecturer controls.
+
+Principles: clean, fast, academic, obvious primary action. Minimal animation and colour. Empty states with a next action. Errors in plain language (never raw `IntegrityError` / CSRF dumps). Do not rely on colour alone for status (text + hierarchy). Basic a11y: semantic HTML, labels, focus, contrast, keyboard.
+
+Visual language: Present, academic, reliable, fast. Strong type, cards, spacing, high contrast, mobile-first student flows, projector-optimized QR.
+
+Reusable template pieces: navbar, cards, buttons, badges, modal, alert, table, empty/loading, QR display, status.
+
+---
+
+# 23. Technology
+
+**Backend:** Django (auth, ORM, templates, admin, validation).  
+**Database:** PostgreSQL (dev and production).  
+**Frontend:** Django Templates + vanilla JS. No React in MVP.  
+**CSS:** Tailwind CSS.
+
+JS modules (do not one-file):
+
+```text
+static/js/
+  location.js     geolocation, permission failures
+  attendance.js   check-in POST, messages
+  session.js      countdown, poll, extend/end UI hooks
+  device.js       UUID get-or-create
+  display.js      projector QR page
+```
+
+Business logic in `attendance/services.py`, not fat views. Distance helper thoroughly unit-tested.
+
+---
+
+# 24. Project structure
+
+```text
+present/
+├── manage.py
+├── config/                 settings, urls, asgi, wsgi
+├── accounts/               custom user, profiles, domain-gated auth
+├── courses/                Course, CourseParticipant
+├── attendance/             sessions, records, services, validators
+├── templates/
+├── static/
+├── requirements/           base, development, production
+└── .env                    not committed
+```
+
+---
+
+# 25. Data models
+
+## User (custom)
+
+```text
+id, email (unique), password, first_name, last_name
+role                  LECTURER | STUDENT
+is_active, is_staff, is_superuser, date_joined
+```
+
+Email is the username.
+
+## StudentProfile
+
+```text
+id, user (OneToOne), student_id (unique, immutable in app logic)
+programme, level, department   optional
+created_at, updated_at
+```
+
+## LecturerProfile
+
+```text
+id, user (OneToOne)
+staff_id               optional
+department             optional
+created_at, updated_at
+```
+
+## Course
+
+```text
+id, lecturer, code, name, description
+academic_period
+is_archived
+is_active
+created_at, updated_at
+```
+
+Unique together: `(lecturer, code, academic_period)`.
+
+## CourseParticipant
+
+```text
+id, student, course, first_seen_at
+UNIQUE(student, course)
+```
+
+## AttendanceSession
+
+```text
+id, course, token (unique)
+started_at, expires_at, ended_at
+status
+lecturer_latitude, lecturer_longitude, lecturer_accuracy
+allowed_radius
+extend_count
+created_at
+```
+
+## AttendanceRecord
+
+As section 17.
+
+---
+
+# 26. URL design
+
+## Auth
 
 ```text
 /login/
- /logout/
-/register/
+/logout/
+/register/                  role-specific; enforce domain by chosen role
 /password-reset/
 ```
 
-## Courses
+## Courses (lecturer)
 
 ```text
 /courses/
-/courses/<id>/
 /courses/create/
+/courses/<id>/
 /courses/<id>/edit/
-```
-
-## Roster
-
-```text
-/courses/<id>/students/
-/courses/<id>/students/add/
-/courses/<id>/students/import/
+/courses/<id>/archive/
+/courses/<id>/delete/
+/courses/<id>/export/
 ```
 
 ## Attendance
 
 ```text
-/courses/<id>/attendance/start/
-/attendance/<session_token>/
-/attendance/<session_token>/check-in/
-/attendance/<session_token>/status/
-/attendance/<session_token>/end/
+POST /courses/<id>/attendance/start/
+GET  /attendance/<token>/                      student check-in page (scan-time auth)
+POST /attendance/<token>/check-in/
+GET  /attendance/sessions/<id>/live/           lecturer names + count (lecturer auth)
+POST /attendance/sessions/<id>/end/
+POST /attendance/sessions/<id>/extend/
+POST /attendance/sessions/<id>/location/
+POST /attendance/sessions/<id>/manual/
+GET  /attendance/sessions/<id>/display/        QR + count + timer only (lecturer auth)
+GET  /attendance/sessions/<id>/export/
 ```
 
-## Student history
+Do not put the name list on a URL that is guessable from the QR token alone.
+
+## Student
 
 ```text
 /student/courses/
-/student/courses/<id>/attendance/
+/student/courses/<id>/
 ```
 
 ---
 
-# 55. Start Session Endpoint
+# 27. Endpoint notes
 
-Conceptually:
+## Start
 
-```text
-POST /courses/<course_id>/attendance/start/
-```
+Lecturer owns course, course not archived, no other ACTIVE session, valid location, generate token, set `expires_at`, return token, `expires_at`, radius, display URL.
 
-Server:
+## Check-in
 
-1. Authenticate lecturer.
-2. Confirm lecturer owns course.
-3. Confirm course is active.
-4. Validate lecturer location.
-5. Generate secure session token.
-6. Create attendance session.
-7. Set expiration.
-8. Return session information.
-
-Example response:
+Body:
 
 ```json
 {
-    "success": true,
-    "session_token": "...",
-    "expires_at": "...",
-    "allowed_radius": 100
+  "latitude": 5.6509,
+  "longitude": -0.1870,
+  "accuracy": 18,
+  "device_id": "<uuid>"
 }
 ```
 
----
+Student from the auth session only.
 
-# 56. Check-In Endpoint
-
-Conceptually:
-
-```text
-POST /attendance/<session_token>/check-in/
-```
-
-Request:
-
-```json
-{
-    "latitude": 5.6509,
-    "longitude": -0.1870,
-    "accuracy": 18,
-    "location_timestamp": "2026-08-27T10:04:12Z",
-    "device_id": "..."
-}
-```
-
-The server determines the student through authentication.
-
-The response should be clear.
-
-Success:
-
-```json
-{
-    "success": true,
-    "status": "present",
-    "message": "Attendance recorded successfully."
-}
-```
-
-Failure:
-
-```json
-{
-    "success": false,
-    "error": "outside_attendance_radius",
-    "message": "You appear to be outside the attendance area."
-}
-```
-
----
-
-# 57. Error Codes
-
-Use predictable internal error identifiers.
-
-Examples:
+## Errors (stable codes)
 
 ```text
 session_not_found
 session_expired
 session_ended
-not_enrolled
 already_attended
 device_already_used
 location_unavailable
-location_stale
 outside_attendance_radius
 invalid_coordinates
 permission_denied
+not_authenticated
+not_student
+domain_not_allowed
+student_id_taken
+manual_cap_reached
+manual_duplicate
+active_session_exists
+extend_cap_reached
 ```
 
-These make frontend handling easier.
+User `message` is friendly. `error` is for the frontend.
 
 ---
 
-# 58. Security Requirements
+# 28. Security
 
-Security is particularly important because attendance is an integrity-sensitive system.
+The frontend is never trusted. Server decides identity, session validity, distance, and whether to write a row. Database enforces uniqueness.
 
-The server must never trust:
+- CSRF stays enabled.
+- Django password hashing, secure/HttpOnly/SameSite cookies, HTTPS in production.
+- Geolocation requires a secure context; production is HTTPS from first deploy plan.
+- Rate-limit login and check-in reasonably (implementation detail; do not leave unlimited brute force).
+- Do not log passwords or secrets. Do log auth failures, session start/end, and validation failures.
 
-- Student ID submitted by client.
-- Course ID submitted by client.
-- Attendance status submitted by client.
-- Distance submitted by client.
-- Lecturer identity submitted by client.
-- Session ownership submitted by client.
-
-The client should provide raw information such as coordinates.
-
-The server calculates:
-
-```text
-student identity
-course membership
-session validity
-distance
-attendance status
-```
-
----
-
-# 59. CSRF Protection
-
-Django's CSRF protection must remain enabled.
-
-POST requests from authenticated browser sessions must use valid CSRF protection.
-
-Do not disable CSRF globally.
-
----
-
-# 60. Authentication Security
-
-Use:
-
-- Django password hashing.
-- Secure sessions.
-- HTTPS in production.
-- Secure cookies.
-- HttpOnly cookies.
-- SameSite protection.
-- CSRF protection.
-
-Do not create a custom authentication system unless there is a compelling requirement.
-
----
-
-# 61. HTTPS
-
-Production deployment must use HTTPS.
-
-Geolocation APIs generally require a secure context.
-
-Therefore:
-
-```text
-HTTP
-```
-
-should not be used for production.
-
-Use:
-
-```text
-HTTPS
-```
-
-from the beginning of deployment planning.
-
----
-
-# 62. Environment Variables
-
-Secrets must not be committed to Git.
-
-Use environment variables for:
+**Environment (not in git):**
 
 ```text
 SECRET_KEY
@@ -1840,1508 +895,197 @@ DEBUG
 DATABASE_URL
 ALLOWED_HOSTS
 CSRF_TRUSTED_ORIGINS
-```
-
-Potential future variables:
-
-```text
+STUDENT_EMAIL_DOMAINS
+LECTURER_EMAIL_DOMAINS
 EMAIL_HOST
 EMAIL_USER
 EMAIL_PASSWORD
 ```
 
----
-
-# 63. Django Admin
-
-The Django admin should be configured for internal administration.
-
-Admin should expose:
-
-```text
-Users
-Student Profiles
-Lecturer Profiles
-Courses
-Enrollments
-Attendance Sessions
-Attendance Records
-```
-
-Useful filters:
-
-```text
-Course
-Lecturer
-Student
-Status
-Date
-```
-
-Useful search:
-
-```text
-Student ID
-Email
-Course code
-Course name
-```
+`DEBUG=True` is forbidden in production.
 
 ---
 
-# 64. Auditability
+# 29. Time
 
-Attendance records should not be casually editable.
-
-The system should preserve:
-
-- When attendance was recorded.
-- Which session.
-- Which student.
-- Device identifier.
-- Student location.
-- Lecturer location.
-- Calculated distance.
-- Accuracy.
-
-If an administrator must correct attendance later, the system should ideally maintain an audit trail.
-
-A full audit log is a future enhancement, but the schema should not make future auditing impossible.
+Store timestamps in UTC. `USE_TZ = True`. Render in local timezone for humans. Server is authority for start, expiry, extend, and `recorded_at`.
 
 ---
 
-# 65. Time Handling
+# 30. Admin
 
-All timestamps should be stored in UTC.
+Django admin: users, profiles, courses, participants, sessions, records. Filters: course, lecturer, student, status, date. Search: student ID, email, course code/name.
 
-Django timezone support should be enabled.
-
-User-facing times should be rendered in the relevant local timezone.
-
-The server should remain the authority for:
-
-- Session start.
-- Session expiration.
-- Attendance timestamp.
-
-Do not trust client-provided current time.
+Attendance should not be casually edited. MVP has no full audit log; do not make records impossible to audit later (keep coords on scan rows).
 
 ---
 
-# 66. Attendance Accuracy
-
-The application should distinguish:
-
-```text
-GPS coordinates
-```
-
-from:
-
-```text
-calculated attendance distance
-```
-
-The calculated distance must be generated server-side.
-
-Example:
-
-```text
-Lecturer location
-Student location
-
-             ↓
-
-Server calculates
-
-             ↓
-
-Distance = 64.3 metres
-```
-
-The client must not submit:
-
-```text
-distance = 2 metres
-```
-
-and expect the server to trust it.
-
----
-
-# 67. QR Scanning
-
-There are two separate QR-related interactions.
-
-## Lecturer
-
-The lecturer's browser **displays** the QR code.
-
-## Student
-
-The student's phone scans the QR code.
-
-For MVP, the student can use the phone's native camera to scan the QR code.
-
-The QR should resolve to the Present attendance URL.
-
-This avoids requiring the student to install a QR scanner.
-
----
-
-# 68. Student Enrollment UX
-
-The preferred first-time setup is:
-
-```text
-Lecturer imports roster
-       ↓
-Student record exists
-       ↓
-Student receives/creates login
-       ↓
-Student account is associated with student record
-```
-
-However, the exact account activation mechanism can be simplified during MVP implementation.
-
-Possible future mechanism:
-
-```text
-University email verification
-```
-
----
-
-# 69. Duplicate Student Handling
-
-Student ID must be the primary business identifier for student records.
-
-If an import contains:
-
-```text
-10982345,John Mensah
-10982345,John Mensah
-```
-
-the import should flag the duplicate.
-
-If a student already exists in the system:
-
-```text
-10982345
-```
-
-the application should associate the existing student rather than create a second student.
-
----
-
-# 70. Attendance Percentage
-
-For a student:
-
-```text
-attendance_rate =
-sessions_present / sessions_held × 100
-```
-
-Example:
-
-```text
-18 / 20 × 100 = 90%
-```
-
-For a course session:
-
-```text
-attendance_rate =
-students_present / enrolled_students × 100
-```
-
----
-
-# 71. Absent Students
-
-The system does not need to create an explicit attendance record for every absent student.
-
-Instead:
-
-```text
-Enrollment exists
-Attendance record does not exist
-```
-
-means the student was absent for that session.
-
-This reduces unnecessary writes.
-
-However, the UI should still calculate and display:
-
-```text
-Present
-Absent
-```
-
-from enrollment and attendance records.
-
----
-
-# 72. Session Completion
-
-When the lecturer ends the session:
-
-```text
-status = ENDED
-ended_at = current server timestamp
-```
-
-Students can no longer check in.
-
-The session remains available historically.
-
----
-
-# 73. Expired Sessions
-
-If the current server time exceeds:
-
-```text
-expires_at
-```
-
-the session becomes:
-
-```text
-EXPIRED
-```
-
-No new attendance records may be created.
-
----
-
-# 74. Lecturer Location Failure
-
-If the lecturer cannot provide location:
-
-```text
-Unable to determine your location.
-```
-
-The lecturer should not be able to start the attendance session.
-
-Provide a retry mechanism.
-
----
-
-# 75. Student Location Failure
-
-If the student cannot provide location:
-
-```text
-We couldn't verify your location.
-
-Please enable location permission
-and try again.
-```
-
-Do not mark attendance.
-
----
-
-# 76. Browser Compatibility
-
-The application should target modern browsers:
-
-- Chrome.
-- Edge.
-- Safari.
-- Firefox.
-
-Particular attention should be given to:
-
-- Android Chrome.
-- iOS Safari.
-
-because students are likely to use phones.
-
----
-
-# 77. Performance Requirements
-
-For a normal university class, the system should comfortably handle:
-
-```text
-50–200 students
-```
-
-checking in around the same time.
-
-The MVP should be designed so that a burst of requests does not produce duplicate attendance records.
-
-PostgreSQL and proper database constraints should handle the core concurrency requirements.
-
----
-
-# 78. Database Indexing
-
-Add indexes to frequently queried fields.
-
-Recommended:
+# 31. Indexing (do not index everything)
 
 ```text
 User.email
 StudentProfile.student_id
-Course.code
-Enrollment.student
-Enrollment.course
-AttendanceSession.course
+Course (lecturer, academic_period)
+CourseParticipant (course, student)
 AttendanceSession.token
-AttendanceSession.status
-AttendanceRecord.session
-AttendanceRecord.student
+AttendanceSession (course, status)
+AttendanceRecord (session, student)
+AttendanceRecord (session, stub_student_id)
 AttendanceRecord.device_id
 AttendanceRecord.recorded_at
 ```
 
-Do not blindly index every field.
+---
+
+# 32. Testing (mandatory with check-in, not only at deploy)
+
+**Unit:** Haversine, expiry/extend math, attendance rate (`attended / course sessions held`), token uniqueness/entropy smoke, email domain allowlist.
+
+**Model:** uniqueness (student/session, stub/session, device/session), course ownership, one ACTIVE session.
+
+**Service:**
+
+```text
+Valid scan in radius → success
+Outside radius → reject, no row
+Expired / ended → reject
+Duplicate student → reject
+Duplicate device → reject
+Invalid/missing location → reject
+Manual under cap → success
+Manual over cap → reject
+Stub merge on register → FK attached
+Second ACTIVE session on same course → reject
+```
+
+**Integration:** lecturer start → display → student scan-time register → check-in → live count; student cannot read another student’s pages (403/404).
+
+**Concurrency:** two parallel check-ins from same student → one row.
+
+**Security:** CSRF, authz, token guessing, student_id in body ignored, location spoof still “accepted if coords inside radius” is expected (document as deterrent), ended QR fails.
 
 ---
 
-# 79. Transactions
-
-Attendance creation should be handled as a transactional operation.
-
-Conceptually:
+# 33. Deployment
 
 ```text
-BEGIN TRANSACTION
-
-validate student
-validate session
-validate device
-validate location
-create attendance
-
-COMMIT
+Internet → Nginx → Gunicorn → Django → PostgreSQL
 ```
 
-Database uniqueness constraints remain the final protection against duplicates.
+Nginx serves static files. Ubuntu VPS, non-root service user, HTTPS. Separate development and production settings. Backups of PostgreSQL in the hardening phase.
+
+Git: `main`, `develop`, `feature/*`, `fix/*`. Conventional commits (`feat:`, `fix:`, `test:`). PRs for significant features.
 
 ---
 
-# 80. Service Layer
+# 34. Implementation phases
 
-Business logic should not be dumped into large Django views.
+## Phase 1 — Foundation
 
-Create services such as:
+Django, PostgreSQL, env, custom user, Tailwind, base templates, domain-gated register/login, password reset email, admin.
 
-```text
-attendance/services.py
-```
+Deliverable: staff/student can register only with allowed domains and log in.
 
-Potential functions:
+## Phase 2 — Courses
 
-```text
-create_attendance_session()
-validate_attendance_session()
-calculate_distance()
-validate_student_location()
-record_attendance()
-end_attendance_session()
-get_session_statistics()
-```
+CRUD, period filter, archive, typed cascade delete, ownership.
 
-This keeps the application maintainable.
+Deliverable: lecturer manages courses with no roster.
 
----
+## Phase 3 — Sessions and display
 
-# 81. Location Utility
+Session model, token, start (GPS + radius + duration), one ACTIVE, QR, podium **display page** (QR/count/timer), end, extend (+5 × 3), update location.
 
-Create a dedicated utility for geographic calculations.
+Deliverable: lecturer starts on phone and projects QR without names.
 
-Conceptually:
+## Phase 4 — Check-in
 
-```text
-calculate_distance(
-    lat1,
-    lon1,
-    lat2,
-    lon2
-)
-```
+Scan URL, scan-time auth resume, record, uniqueness, device UUID, live poll on lecturer phone. **No GPS gate yet** optional internally only if needed to test the transaction; do not ship without Phase 5.
 
-Return:
+Deliverable: logged-in student can scan and appear on the list.
 
-```text
-distance in metres
-```
+## Phase 5 — Geolocation
 
-This utility must be thoroughly tested.
+Lecturer pin, student GPS, Haversine, radius, store coords, hide coords from lecturer UI, failure messages.
 
----
+Deliverable: home coordinates fail; nearby succeed (ordinary devices).
 
-# 82. Frontend JavaScript Modules
+## Phase 6 — Manual presents and merge
 
-Avoid putting all JavaScript into one huge file.
+Capped manual, stubs, merge on register, CSV (session + rollup).
 
-Recommended:
+Deliverable: dead-phone path and export for reconciliation.
 
-```text
-static/js/
-    location.js
-    attendance.js
-    session.js
-    dashboard.js
-    device.js
-```
+## Phase 7 — History
 
-Potential responsibilities:
+Course session list, per-student `attended / held`, student dashboard.
 
-### location.js
+Deliverable: semester-long presence log.
 
-- Request location.
-- Validate browser support.
-- Return coordinates.
-- Handle permission failures.
+## Phase 8 — Hardening
 
-### attendance.js
+Tests from phases 3–6 already written; security pass; logging; HTTPS; production config; backups.
 
-- Submit attendance.
-- Handle response.
-- Display success/failure.
-
-### session.js
-
-- Countdown.
-- Poll session status.
-- Update attendance count.
-
-### device.js
-
-- Generate/retrieve device UUID.
+Deliverable: production-ready MVP.
 
 ---
 
-# 83. UI Components
-
-Build reusable template components for:
-
-```text
-Navbar
-Sidebar
-Card
-Button
-Badge
-Modal
-Alert
-Table
-Empty state
-Loading state
-QR display
-Attendance status
-```
-
-Do not duplicate identical markup throughout the application.
-
----
-
-# 84. Visual Language
-
-The visual identity should communicate:
-
-```text
-Present
-Verified
-Academic
-Reliable
-Fast
-```
-
-A restrained UI is preferable.
-
-Primary visual concepts:
-
-- Strong typography.
-- Clean cards.
-- Clear status indicators.
-- Generous spacing.
-- High contrast.
-- Mobile responsiveness.
-- Minimal distractions.
-
----
-
-# 85. Attendance Status Indicators
-
-Use visually distinct states:
-
-```text
-Present
-Active
-Expired
-Ended
-Absent
-Pending
-Rejected
-```
-
-Do not rely on color alone.
-
-Use:
-
-- Icons.
-- Text.
-- Appropriate visual hierarchy.
-
-This improves accessibility.
-
----
-
-# 86. Accessibility
-
-The MVP should follow basic accessibility principles:
-
-- Semantic HTML.
-- Keyboard navigation.
-- Visible focus states.
-- Proper form labels.
-- Accessible buttons.
-- Sufficient contrast.
-- Clear error messages.
-- Screen-reader-friendly status messages.
-
----
-
-# 87. Empty States
-
-Do not show blank dashboards.
-
-Example:
-
-```text
-You don't have any courses yet.
-
-Create your first course to get started.
-
-[ Create Course ]
-```
-
-Student:
-
-```text
-You aren't enrolled in any courses yet.
-```
-
----
-
-# 88. Error Handling
-
-Errors should be user-friendly.
-
-Avoid displaying raw:
-
-```text
-500 Internal Server Error
-IntegrityError
-CSRF verification failed
-```
-
-to normal users.
-
-The application should log technical errors server-side while presenting useful messages to users.
-
----
-
-# 89. Logging
-
-Production logging should capture:
-
-- Application errors.
-- Authentication failures.
-- Attendance validation failures.
-- Unexpected exceptions.
-- Session creation.
-- Session ending.
-
-Do not log:
-
-- Passwords.
-- Authentication secrets.
-- Excessive sensitive information.
-
----
-
-# 90. Testing Strategy
-
-Testing is mandatory because attendance integrity is the central product requirement.
-
-## Unit tests
-
-Test:
-
-- Distance calculation.
-- Session expiration.
-- Attendance rate calculation.
-- Token generation.
-- Enrollment validation.
-
-## Model tests
-
-Test:
-
-- Uniqueness constraints.
-- Course ownership.
-- Enrollment relationships.
-- Attendance relationships.
-
-## Attendance service tests
-
-Test:
-
-```text
-Valid attendance → success
-Expired session → rejection
-Ended session → rejection
-Student not enrolled → rejection
-Duplicate student → rejection
-Duplicate device → rejection
-Outside radius → rejection
-Invalid location → rejection
-```
-
----
-
-# 91. Integration Tests
-
-Test complete flows.
-
-### Lecturer
-
-```text
-Login
-→ Create course
-→ Add students
-→ Start session
-→ End session
-```
-
-### Student
-
-```text
-Login
-→ Open QR URL
-→ Submit location
-→ Attendance recorded
-```
-
-### Security
-
-```text
-Student attempts to access another student's data
-→ 403/404
-```
-
----
-
-# 92. Concurrency Test
-
-Simulate two requests from the same student arriving almost simultaneously.
-
-Expected result:
-
-```text
-Request 1 → attendance created
-Request 2 → rejected as duplicate
-```
-
-Do not allow:
-
-```text
-Request 1 → attendance created
-Request 2 → second attendance created
-```
-
----
-
-# 93. Security Testing
-
-Test:
-
-- CSRF.
-- Authentication bypass.
-- Authorization bypass.
-- Session token guessing.
-- Duplicate requests.
-- Student ID manipulation.
-- Course ID manipulation.
-- Location manipulation.
-- Expired QR codes.
-- Ended sessions.
-- Unauthorized attendance modifications.
-
----
-
-# 94. Deployment Architecture
-
-Recommended initial production architecture:
-
-```text
-                    Internet
-                       │
-                       ▼
-                    Nginx
-                       │
-                       ▼
-                  Gunicorn
-                       │
-                       ▼
-                    Django
-                       │
-                       ▼
-                 PostgreSQL
-```
-
-Static files should be served efficiently by Nginx.
-
----
-
-# 95. Production Infrastructure
-
-Minimum:
-
-```text
-VPS
-Ubuntu Linux
-Nginx
-Gunicorn
-Django
-PostgreSQL
-HTTPS
-```
-
-The application should run under a non-root service account.
-
----
-
-# 96. Environment Separation
-
-Maintain:
-
-```text
-development
-staging
-production
-```
-
-At minimum, development and production configuration must be separated.
-
-Never use:
-
-```text
-DEBUG=True
-```
-
-in production.
-
----
-
-# 97. Git Workflow
-
-Repository:
-
-```text
-present/
-```
-
-Recommended branches:
-
-```text
-main
-develop
-feature/*
-fix/*
-```
-
-Example:
-
-```text
-feature/authentication
-feature/course-management
-feature/attendance-session
-feature/geolocation
-```
-
-Pull requests should be used before merging significant features.
-
----
-
-# 98. Commit Strategy
-
-Use meaningful commits.
-
-Good:
-
-```text
-feat: add custom user authentication
-feat: add course enrollment
-feat: implement attendance sessions
-feat: add geolocation validation
-fix: prevent duplicate attendance
-test: add attendance concurrency tests
-```
-
-Avoid:
-
-```text
-update
-changes
-stuff
-final
-final2
-```
-
----
-
-# 99. Implementation Phases
-
-The project should be built incrementally.
-
-## Phase 1 — Project Foundation
-
-Implement:
-
-- Django project.
-- PostgreSQL connection.
-- Environment configuration.
-- Custom user model.
-- Base templates.
-- Tailwind.
-- Authentication.
-- Django admin.
-
-Deliverable:
-
-```text
-Users can register and log in.
-```
-
----
-
-## Phase 2 — Course Management
-
-Implement:
-
-- Course model.
-- Course creation.
-- Course editing.
-- Course listing.
-- Lecturer ownership.
-- Course dashboard.
-
-Deliverable:
-
-```text
-Lecturer can create and manage courses.
-```
-
----
-
-## Phase 3 — Student Management
-
-Implement:
-
-- Student profile.
-- Student IDs.
-- Enrollment.
-- Individual student addition.
-- CSV import.
-- Roster page.
-
-Deliverable:
-
-```text
-Lecturer can establish a complete class roster.
-```
-
----
-
-## Phase 4 — Attendance Sessions
-
-Implement:
-
-- Session model.
-- Secure token generation.
-- Session creation.
-- Expiration.
-- End session.
-- QR generation.
-- QR display.
-
-Deliverable:
-
-```text
-Lecturer can start an attendance session
-and display a QR code.
-```
-
----
-
-## Phase 5 — Student Check-In
-
-Implement:
-
-- QR URL.
-- Student authentication.
-- Session validation.
-- Enrollment validation.
-- Attendance record.
-- Duplicate protection.
-
-Deliverable:
-
-```text
-Student can scan and mark attendance.
-```
-
-Initially implement attendance without geolocation if necessary so the core transaction can be tested independently.
-
----
-
-## Phase 6 — Geolocation
-
-Implement:
-
-- Lecturer location capture.
-- Student location capture.
-- Location accuracy.
-- Haversine calculation.
-- Radius validation.
-- Location timestamps.
-- Failure states.
-
-Deliverable:
-
-```text
-Only students within the configured
-attendance radius can check in.
-```
-
----
-
-## Phase 7 — Device Protection
-
-Implement:
-
-- Device UUID generation.
-- Persistent client storage.
-- Device/session validation.
-- Duplicate device handling.
-
-Deliverable:
-
-```text
-One device cannot be used to
-record multiple students in one session.
-```
-
----
-
-## Phase 8 — Live Dashboard
-
-Implement:
-
-- Attendance count.
-- Present student list.
-- Polling.
-- Countdown.
-- Session status.
-- End session.
-
-Deliverable:
-
-```text
-Lecturer can watch attendance happen in real time.
-```
-
----
-
-## Phase 9 — History & Analytics
-
-Implement:
-
-- Course attendance history.
-- Individual student history.
-- Attendance percentages.
-- Session statistics.
-- Student dashboard.
-
-Deliverable:
-
-```text
-Present becomes a useful semester-long attendance system.
-```
-
----
-
-## Phase 10 — Hardening & Deployment
-
-Implement:
-
-- Security review.
-- Automated tests.
-- Error handling.
-- Logging.
-- HTTPS.
-- Production configuration.
-- PostgreSQL production database.
-- Backup strategy.
-- Deployment scripts.
-
-Deliverable:
-
-```text
-Production-ready MVP.
-```
-
----
-
-# 100. MVP Definition of Done
-
-The MVP is complete when the following scenario works from beginning to end.
+# 35. MVP definition of done
 
 ## Lecturer
 
-1. Registers/logs in.
-2. Creates BIOC 301.
-3. Imports 57 students.
-4. Opens BIOC 301.
-5. Clicks **Start Attendance**.
-6. Grants browser location permission.
-7. Present creates an active session.
-8. Present generates a QR code.
-9. Lecturer displays QR code.
+1. Registers with staff email and logs in.
+2. Creates BIOC 301 for the current academic period.
+3. On phone: Start Attendance, grants location, default 15 min / 150 m.
+4. On podium PC: logs in, opens display — large QR, countdown, headcount, **no names**.
+5. Phone shows names as students scan (ID, name, email, time).
+6. Can +5 min up to three times, update location, add up to 3 manuals, End.
+7. Exports CSV and ticks against their official class list.
+8. Sees headcount, not `49/57`.
 
 ## Student
 
-1. Student logs in.
-2. Student scans QR code.
-3. Student's course membership is validated.
-4. Browser requests location.
-5. Student grants location permission.
-6. Present receives coordinates.
-7. Server calculates distance.
-8. Distance is within permitted radius.
-9. Device has not been used for another student.
-10. Student has not already attended.
-11. Attendance is recorded.
+1. Scans QR (including first-time in Safari from Camera).
+2. Registers with student email + student ID on that page if needed.
+3. Grants location; inside radius → You’re Present.
+4. Friend at home with the same QR and real GPS → outside radius (unless they spoof coords).
+5. Can see `18 / 20` style history for courses they have appeared in.
 
-## Lecturer
-
-The lecturer immediately sees:
-
-```text
-1 / 57 Present
-```
-
-Then:
-
-```text
-2 / 57 Present
-```
-
-and eventually:
-
-```text
-49 / 57 Present
-```
-
-When the lecturer ends the session:
-
-```text
-49 Present
-8 Absent
-86% Attendance
-```
-
-The session becomes immutable from the normal lecturer interface.
+The session is immutable from the lecturer UI except: extend and update-location while ACTIVE, and manuals while ACTIVE. No row deletes.
 
 ---
 
-# 101. Important Product Decisions
+# 36. Product decisions (fixed unless there is a strong reason)
 
-The following decisions should remain fixed unless there is a strong reason to change them:
-
-### Decision 1
-
-**Django over Flask**
-
-Reason:
-
-- Authentication.
-- Admin.
-- ORM.
-- Forms.
-- Security.
-- Structured application architecture.
-
-### Decision 2
-
-**PostgreSQL over SQLite**
-
-Reason:
-
-- Concurrent attendance submissions.
-- Relational data.
-- Production reliability.
-- Strong constraints.
-
-### Decision 3
-
-**Django Templates + Vanilla JS over React**
-
-Reason:
-
-- Lower complexity.
-- Faster MVP development.
-- No need for a separate frontend application.
-- Attendance interaction is relatively contained.
-- React can be introduced later if the dashboard becomes sufficiently complex.
-
-### Decision 4
-
-**QR + geolocation**
-
-QR establishes:
-
-```text
-Which attendance session?
-```
-
-Geolocation establishes:
-
-```text
-Is the student physically near the session?
-```
-
-Authentication establishes:
-
-```text
-Which student?
-```
-
-Device identification establishes:
-
-```text
-Has this device already been used?
-```
-
-Together:
-
-```text
-Identity
-+
-Session
-+
-Location
-+
-Device
-=
-Verified Attendance
-```
+**Django** — auth, admin, ORM, forms, structure.  
+**PostgreSQL** — concurrent check-ins and constraints.  
+**Templates + vanilla JS** — no separate SPA for MVP.  
+**QR + GPS as deterrent** — QR selects the session; GPS (server Haversine vs pin) raises the cost of checking in from elsewhere; auth selects the person; device UUID raises the cost of pass-the-phone. Together they produce a **presence record with friction**, not a verified-attendance certificate.  
+**Presence log, not register** — lecturers already have a class list; Present does not duplicate it.
 
 ---
 
-# 102. Future Enhancements
+# 37. Future (must not block MVP)
 
-These should NOT block MVP development.
-
-Potential future versions could include:
-
-## Rotating QR
-
-QR changes every few seconds.
-
-## Wi-Fi verification
-
-Verify that the device is connected to the classroom/institution network.
-
-## Bluetooth proximity
-
-Use Bluetooth beacons or other proximity mechanisms.
-
-## University SSO
-
-Integrate with institutional authentication.
-
-## Email verification
-
-Require university email addresses.
-
-## Timetable integration
-
-Automatically create sessions based on scheduled classes.
-
-## Attendance reports
-
-Export:
-
-```text
-CSV
-Excel
-PDF
-```
-
-## Attendance warnings
-
-Automatically identify students below a threshold.
-
-Example:
-
-```text
-John Mensah
-Attendance: 62%
-⚠ Below 75% threshold
-```
-
-## Multiple lecturers
-
-Allow co-teaching.
-
-## Course assistants
-
-Allow authorized teaching assistants to start sessions.
-
-## Advanced analytics
-
-Track:
-
-- Attendance trends.
-- Session-level attendance.
-- Student attendance patterns.
-- Course comparisons.
-
-## Progressive Web App
-
-Allow Present to behave more like a mobile application without requiring native apps.
+- Rotating QR
+- Wi-Fi / Bluetooth proximity
+- University SSO
+- Email local-part == student ID (if campus mail actually works that way)
+- Co-lecturers / TAs
+- Remove/correct a check-in with audit
+- Lecturer map of check-ins
+- Excel/PDF reports, at-risk thresholds
+- PWA
+- Roster import / SIS sync if a department later wants Present to *be* the register
 
 ---
 
-# 103. Critical Security Principle
-
-The most important implementation principle is:
-
-> **The frontend is never trusted.**
-
-A user can modify JavaScript.
-
-A user can inspect network requests.
-
-A user can manipulate request payloads.
-
-Therefore:
-
-```text
-Frontend
-    ↓
-provides information
-    ↓
-Backend
-    ↓
-validates everything
-    ↓
-Database
-    ↓
-enforces integrity
-```
-
-The server must determine whether attendance is valid.
-
----
-
-# 104. Critical UX Principle
-
-The most important UX principle is:
+# 38. UX principle
 
 > **Attendance should take seconds, not minutes.**
 
-The ideal student flow is:
+Ideal repeat student: Scan → location → You’re Present.
 
-```text
-Scan QR
-   ↓
-Location check
-   ↓
-✓ Present
-```
+Ideal lecturer: Start → project QR → watch the phone → End → export.
 
-No lengthy form.
-
-No searching for a course.
-
-No manually entering a student number.
-
-No typing a code.
-
-No unnecessary confirmation steps.
-
-Once authenticated and onboarded, the student's normal attendance interaction should be almost frictionless.
-
----
-
-# 105. Product Philosophy
-
-Present should not feel like an administrative database with an attendance feature.
-
-It should feel like:
-
-> **A simple "I'm here" button backed by serious verification.**
-
-The complexity should exist behind the scenes.
-
-For the lecturer:
-
-```text
-Start → Display → Watch → End
-```
-
-For the student:
-
-```text
-Scan → Verify → Present
-```
-
-Everything else exists to make those two experiences reliable.
-
----
-
-# 106. Final Architecture
-
-The final MVP architecture should look approximately like this:
-
-```text
-                         PRESENT
-                            │
-             ┌──────────────┴──────────────┐
-             │                             │
-         LECTURER                       STUDENT
-             │                             │
-             ▼                             ▼
-      Django Templates              Django Templates
-             │                             │
-             └──────────────┬──────────────┘
-                            │
-                     Vanilla JavaScript
-                            │
-                 ┌──────────┴──────────┐
-                 │                     │
-             Geolocation              QR
-                 │                     │
-                 └──────────┬──────────┘
-                            │
-                         Django
-                            │
-             ┌──────────────┼──────────────┐
-             │              │              │
-         Accounts         Courses       Attendance
-             │              │              │
-             └──────────────┼──────────────┘
-                            │
-                       Django ORM
-                            │
-                            ▼
-                       PostgreSQL
-```
-
----
-
-# 107. Core Data Relationship
-
-The central relationship is:
-
-```text
-LECTURER
-    │
-    │ owns
-    ▼
- COURSE
-    │
-    │ has
-    ▼
-ENROLLMENTS
-    │
-    │ connect
-    ▼
- STUDENTS
-    │
-    │ attend
-    ▼
-ATTENDANCE SESSIONS
-    │
-    │ generate
-    ▼
-ATTENDANCE RECORDS
-```
-
-More precisely:
-
-```text
-Lecturer
-   │
-   ├───────────────┐
-   ▼               ▼
-Courses          Profile
-   │
-   ▼
-Enrollments
-   │
-   ▼
-Students
-   │
-   ▼
-Attendance Records
-   ▲
-   │
-Attendance Sessions
-```
-
----
-
-# 108. Final MVP Success Criteria
-
-Present succeeds if a lecturer can walk into a classroom and accomplish this:
-
-```text
-Open Present
-      ↓
-Select BIOC 301
-      ↓
-Start Attendance
-      ↓
-QR appears
-      ↓
-Project QR
-      ↓
-Students scan
-      ↓
-Location verified
-      ↓
-Attendance appears live
-      ↓
-End session
-```
-
-without requiring technical knowledge.
-
-A student should be able to:
-
-```text
-Scan
- ↓
-Verify location
- ↓
-See "You're Present"
-```
-
-in a matter of seconds.
-
-That simplicity should remain the defining characteristic of Present even as the system grows.
+Complexity stays behind the server.

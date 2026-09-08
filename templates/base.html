@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Present{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/output.css' %}" />
+  </head>
+  <body class="min-h-screen">
+    <header class="border-b border-zinc-200 bg-white">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+        <a href="{% url 'home' %}" class="text-lg font-semibold tracking-tight">Present</a>
+        <nav class="flex items-center gap-4 text-sm">
+          {% if user.is_authenticated %}
+            {% if user.is_lecturer %}
+              <a class="text-zinc-600 hover:text-zinc-900" href="{% url 'lecturer_dashboard' %}">Dashboard</a>
+              <a class="text-zinc-600 hover:text-zinc-900" href="{% url 'course_list' %}">Courses</a>
+            {% else %}
+              <a class="text-zinc-600 hover:text-zinc-900" href="{% url 'student_dashboard' %}">Dashboard</a>
+            {% endif %}
+            <a class="text-zinc-600 hover:text-zinc-900" href="{% url 'profile' %}">Profile</a>
+            <span class="hidden text-zinc-500 sm:inline">{{ user.display_name }}</span>
+            <form method="post" action="{% url 'logout' %}">
+              {% csrf_token %}
+              <button type="submit" class="text-zinc-600 hover:text-zinc-900">Log out</button>
+            </form>
+          {% else %}
+            <a class="text-zinc-600 hover:text-zinc-900" href="{% url 'login' %}">Log in</a>
+            <a class="btn-primary" href="{% url 'register_student' %}">Create account</a>
+          {% endif %}
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-5xl px-4 py-10">
+      {% if messages %}
+        <ul class="mb-6 space-y-2">
+          {% for message in messages %}
+            <li class="rounded-md border border-zinc-200 bg-white px-4 py-3 text-sm">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+target-version = "py312"
+line-length = 100
+exclude = [".venv", "node_modules", "staticfiles"]
+
+[lint]
+select = ["E", "F", "I", "UP"]
+
+[lint.per-file-ignores]
+"**/migrations/*.py" = ["E501"]

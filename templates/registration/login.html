@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Log in · Present{% endblock %}
+
+{% block content %}
+  <div class="mx-auto max-w-md">
+    <h1 class="text-2xl font-semibold tracking-tight">Log in</h1>
+    <p class="mt-2 text-sm text-zinc-600">Use your university email.</p>
+
+    <form method="post" class="card mt-6 space-y-4">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="text-sm text-red-700">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div>
+        <label class="mb-1 block text-sm font-medium" for="{{ form.username.id_for_label }}">Email</label>
+        {{ form.username }}
+        {{ form.username.errors }}
+      </div>
+      <div>
+        <label class="mb-1 block text-sm font-medium" for="{{ form.password.id_for_label }}">Password</label>
+        {{ form.password }}
+        {{ form.password.errors }}
+      </div>
+      <button type="submit" class="btn-primary w-full">Log in</button>
+    </form>
+
+    <p class="mt-4 text-sm text-zinc-600">
+      <a class="underline" href="{% url 'password_reset' %}">Forgot your password?</a>
+    </p>
+    <p class="mt-2 text-sm text-zinc-600">
+      New here?
+      <a class="font-medium text-zinc-900 underline" href="{% url 'register_student' %}">Create a student account</a>
+      or
+      <a class="font-medium text-zinc-900 underline" href="{% url 'register_lecturer' %}">a lecturer account</a>.
+    </p>
+  </div>
+{% endblock %}
