@@ -19,7 +19,8 @@ class EmailAuthenticationForm(AuthenticationForm):
             attrs={
                 "autofocus": True,
                 "autocomplete": "email",
-                "class": "input",
+                "class": "input input-icon h-12",
+                "placeholder": "Email address",
             }
         ),
     )
@@ -29,7 +30,8 @@ class EmailAuthenticationForm(AuthenticationForm):
         widget=forms.PasswordInput(
             attrs={
                 "autocomplete": "current-password",
-                "class": "input",
+                "class": "input input-icon h-12",
+                "placeholder": "Password",
             }
         ),
     )

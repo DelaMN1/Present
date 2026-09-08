@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance · Present{% endblock %}
+{% block page_title %}Attendance{% endblock %}
+{% block page_subtitle %}
+  <p class="mt-1 text-sm text-slate-500">Start a session from a course when students are in the room.</p>
+{% endblock %}
+
+{% block content %}
+  {% if courses %}
+    <ul class="grid gap-3">
+      {% for course in courses %}
+        <li class="card flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p class="text-sm font-semibold text-brand-600">{{ course.code }}</p>
+            <h2 class="mt-1 font-semibold">{{ course.name }}</h2>
+          </div>
+          <button
+            type="button"
+            class="btn-primary"
+            data-modal-open="start-attendance-modal"
+            data-course-code="{{ course.code }}"
+            data-course-name="{{ course.name }}"
+            data-session-url="{% url 'course_session' course.pk %}"
+          >
+            Start attendance
+          </button>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="card">
+      {% url 'course_create' as create_url %}
+      {% include "partials/empty_state.html" with title="No attendance sessions yet" description="Create a course, then start attendance when students are in the room." action_href=create_url action_label="Create course" icon="calendar" %}
+    </div>
+  {% endif %}
+
+  {% include "partials/start_attendance_modal.html" %}
+{% endblock %}

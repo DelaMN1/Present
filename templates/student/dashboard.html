@@ -3,13 +3,24 @@
 {% block title %}Dashboard · Present{% endblock %}
 
 {% block content %}
-  <h1 class="text-3xl font-semibold tracking-tight">Welcome, {{ user.first_name|default:user.display_name }}</h1>
-  <p class="mt-2 text-zinc-600">
-    You aren't enrolled by a lecturer. Scan a class QR code when a session starts and you will appear on that course.
-  </p>
+  <p class="text-sm text-slate-500">{{ greeting }},</p>
+  <h1 class="mt-1 text-3xl font-semibold tracking-tight">{{ user.first_name|default:user.display_name }}</h1>
+  <p class="mt-3 text-slate-600">Here's your attendance overview. Scan a class QR when a session starts.</p>
 
-  <div class="card mt-8">
-    <h2 class="text-lg font-semibold">My courses</h2>
-    <p class="mt-2 text-sm text-zinc-600">You aren't linked to any courses yet.</p>
-  </div>
+  <h2 class="mt-8 text-lg font-semibold">My courses</h2>
+  {% if participations %}
+    <ul class="mt-3 grid gap-3">
+      {% for row in participations %}
+        <li class="card">
+          <p class="text-sm font-semibold text-brand-600">{{ row.course.code }}</p>
+          <h3 class="mt-1 font-semibold">{{ row.course.name }}</h3>
+          <p class="mt-3 text-sm text-slate-500">Check-ins for this course will show here after you scan.</p>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="card mt-3">
+      {% include "partials/empty_state.html" with title="You aren't linked to any courses yet" description="After you check in, they will show here with how many sessions you attended." icon="courses" %}
+    </div>
+  {% endif %}
 {% endblock %}

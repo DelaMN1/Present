@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Help · Present{% endblock %}
+{% block page_title %}Help &amp; Support{% endblock %}
+
+{% block content %}
+  <div class="grid gap-4 lg:grid-cols-2">
+    <article class="card">
+      <h2 class="text-[16px] font-semibold">How Present works</h2>
+      <ol class="mt-4 space-y-3 text-sm text-slate-600">
+        <li>1. Open a course.</li>
+        <li>2. Start attendance when students are in the room.</li>
+        <li>3. Show the QR code.</li>
+        <li>4. Students scan and check in from inside the radius.</li>
+        <li>5. You get a presence log of who scanned — not an official class register.</li>
+      </ol>
+    </article>
+    <article class="card">
+      <h2 class="text-[16px] font-semibold">What Present does not do</h2>
+      <ul class="mt-4 space-y-3 text-sm text-slate-600">
+        <li>It does not import or store an enrolment roster.</li>
+        <li>It does not mark official absences against a class list.</li>
+        <li>Scanning a QR is not enough on its own — location and session rules still apply when sessions record.</li>
+      </ul>
+    </article>
+  </div>
+{% endblock %}

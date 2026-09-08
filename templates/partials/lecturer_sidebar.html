@@ -1,0 +1,29 @@
+<aside class="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col bg-sidebar text-white lg:flex">
+  <div class="px-5 py-5">
+    {% url 'lecturer_dashboard' as home_url %}
+    {% include "partials/brand.html" with href=home_url class="text-white" %}
+  </div>
+  {% include "partials/lecturer_nav.html" %}
+  {% include "partials/lecturer_account.html" %}
+</aside>
+
+<div class="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-white px-4 py-3 lg:hidden">
+  {% url 'lecturer_dashboard' as home_url %}
+  {% include "partials/brand.html" with href=home_url %}
+  <button type="button" class="btn-ghost h-11 w-11 p-0" data-drawer-open aria-label="Open menu">
+    {% include "partials/icon.html" with name="menu" class="h-6 w-6" %}
+  </button>
+</div>
+
+<div id="lecturer-drawer" class="fixed inset-0 z-40 hidden bg-slate-900/50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+  <div class="flex h-full w-60 flex-col bg-sidebar text-white">
+    <div class="flex items-center justify-between px-5 py-5">
+      {% include "partials/brand.html" with href=home_url class="text-white" %}
+      <button type="button" class="btn-ghost h-11 w-11 p-0 text-white hover:bg-white/10" data-drawer-close aria-label="Close menu">
+        {% include "partials/icon.html" with name="x" class="h-5 w-5" %}
+      </button>
+    </div>
+    {% include "partials/lecturer_nav.html" %}
+    {% include "partials/lecturer_account.html" %}
+  </div>
+</div>

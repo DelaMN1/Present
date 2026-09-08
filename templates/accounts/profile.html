@@ -1,17 +1,19 @@
 {% extends "base.html" %}
 
 {% block title %}Profile · Present{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block page_subtitle %}
+  <p class="mt-1 text-sm text-slate-500">
+    {% if user.is_student %}Your student ID cannot be changed.{% else %}Use a staff university email.{% endif %}
+  </p>
+{% endblock %}
 
 {% block content %}
   <div class="mx-auto max-w-md">
-    <h1 class="text-2xl font-semibold tracking-tight">Profile</h1>
-    <p class="mt-2 text-sm text-zinc-600">
-      {% if user.is_student %}
-        Your student ID cannot be changed.
-      {% else %}
-        Use a staff university email.
-      {% endif %}
-    </p>
+    {% if user.is_student %}
+      <h1 class="text-2xl font-semibold tracking-tight">Profile</h1>
+      <p class="mt-2 text-sm text-slate-600">Your student ID cannot be changed.</p>
+    {% endif %}
 
     <form method="post" class="card mt-6 space-y-4">
       {% csrf_token %}
@@ -44,7 +46,7 @@
       {% if user.is_student %}
         <div>
           <p class="mb-1 text-sm font-medium">Student ID</p>
-          <p class="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+          <p class="rounded-[10px] border border-line bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
             {{ user.student_profile.student_id }}
           </p>
         </div>
@@ -79,8 +81,14 @@
       <button type="submit" class="btn-primary w-full">Save profile</button>
     </form>
 
-    <p class="mt-4 text-sm text-zinc-600">
-      <a class="font-medium underline" href="{% url 'password_change' %}">Change password</a>
+    <p class="mt-4 text-sm text-slate-600">
+      <a class="font-semibold text-brand-600" href="{% url 'password_change' %}">Change password</a>
     </p>
+    {% if user.is_student %}
+      <form method="post" action="{% url 'logout' %}" class="mt-6">
+        {% csrf_token %}
+        <button type="submit" class="text-sm font-medium text-slate-500 hover:text-slate-800">Log out</button>
+      </form>
+    {% endif %}
   </div>
 {% endblock %}

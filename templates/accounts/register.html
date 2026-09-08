@@ -2,77 +2,85 @@
 
 {% block title %}Create account · Present{% endblock %}
 
-{% block content %}
-  <div class="mx-auto max-w-md">
-    <h1 class="text-2xl font-semibold tracking-tight">
-      {% if is_student %}Create a student account{% else %}Create a lecturer account{% endif %}
-    </h1>
-    <p class="mt-2 text-sm text-zinc-600">
-      {% if is_student %}
-        Use a student university email. Your student ID cannot be changed later.
-      {% else %}
-        Use a staff university email.
-      {% endif %}
-    </p>
-
-    <form method="post" class="card mt-6 space-y-4">
-      {% csrf_token %}
-      {% if form.non_field_errors %}
-        <div class="text-sm text-red-700">{{ form.non_field_errors }}</div>
-      {% endif %}
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="mb-1 block text-sm font-medium" for="{{ form.first_name.id_for_label }}">First name</label>
-          {{ form.first_name }}
-          {{ form.first_name.errors }}
-        </div>
-        <div>
-          <label class="mb-1 block text-sm font-medium" for="{{ form.last_name.id_for_label }}">Last name</label>
-          {{ form.last_name }}
-          {{ form.last_name.errors }}
-        </div>
-      </div>
-
-      <div>
-        <label class="mb-1 block text-sm font-medium" for="{{ form.email.id_for_label }}">Email</label>
-        {{ form.email }}
-        {% if form.email.help_text %}
-          <p class="mt-1 text-xs text-zinc-500">{{ form.email.help_text }}</p>
+{% block body %}
+  <div class="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
+    <div class="w-full max-w-md">
+      {% url 'home' as home_url %}
+      {% include "partials/brand.html" with href=home_url %}
+      <h1 class="mt-8 text-2xl font-semibold tracking-tight">
+        {% if is_student %}Create a student account{% else %}Create a lecturer account{% endif %}
+      </h1>
+      <p class="mt-2 text-sm text-slate-600">
+        {% if is_student %}
+          Use a student university email. Your student ID cannot be changed later.
+        {% else %}
+          Use a staff university email.
         {% endif %}
-        {{ form.email.errors }}
-      </div>
+      </p>
 
-      {% if is_student %}
-        <div>
-          <label class="mb-1 block text-sm font-medium" for="{{ form.student_id.id_for_label }}">Student ID</label>
-          {{ form.student_id }}
-          {{ form.student_id.errors }}
+      <form method="post" class="card mt-6 space-y-4">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="text-sm text-red-600">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="mb-1 block text-sm font-medium" for="{{ form.first_name.id_for_label }}">First name</label>
+            {{ form.first_name }}
+            {{ form.first_name.errors }}
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium" for="{{ form.last_name.id_for_label }}">Last name</label>
+            {{ form.last_name }}
+            {{ form.last_name.errors }}
+          </div>
         </div>
-      {% endif %}
 
-      <div>
-        <label class="mb-1 block text-sm font-medium" for="{{ form.password1.id_for_label }}">Password</label>
-        {{ form.password1 }}
-        {{ form.password1.errors }}
-      </div>
-      <div>
-        <label class="mb-1 block text-sm font-medium" for="{{ form.password2.id_for_label }}">Confirm password</label>
-        {{ form.password2 }}
-        {{ form.password2.errors }}
-      </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium" for="{{ form.email.id_for_label }}">Email</label>
+          {{ form.email }}
+          {% if form.email.help_text %}
+            <p class="mt-1 text-xs text-slate-500">{{ form.email.help_text }}</p>
+          {% endif %}
+          {{ form.email.errors }}
+        </div>
 
-      <button type="submit" class="btn-primary w-full">Create account</button>
-    </form>
+        {% if is_student %}
+          <div>
+            <label class="mb-1 block text-sm font-medium" for="{{ form.student_id.id_for_label }}">Student ID</label>
+            {{ form.student_id }}
+            {{ form.student_id.errors }}
+          </div>
+        {% endif %}
 
-    <p class="mt-4 text-sm text-zinc-600">
-      {% if is_student %}
-        Teaching a course?
-        <a class="font-medium text-zinc-900 underline" href="{% url 'register_lecturer' %}">Register as a lecturer</a>
-      {% else %}
-        Attending a course?
-        <a class="font-medium text-zinc-900 underline" href="{% url 'register_student' %}">Register as a student</a>
-      {% endif %}
-    </p>
+        <div>
+          <label class="mb-1 block text-sm font-medium" for="{{ form.password1.id_for_label }}">Password</label>
+          {{ form.password1 }}
+          {{ form.password1.errors }}
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium" for="{{ form.password2.id_for_label }}">Confirm password</label>
+          {{ form.password2 }}
+          {{ form.password2.errors }}
+        </div>
+
+        <button type="submit" class="btn-primary w-full">Create account</button>
+      </form>
+
+      <p class="mt-4 text-sm text-slate-600">
+        {% if is_student %}
+          Teaching a course?
+          <a class="font-semibold text-brand-600" href="{% url 'register_lecturer' %}">Register as a lecturer</a>
+        {% else %}
+          Attending a course?
+          <a class="font-semibold text-brand-600" href="{% url 'register_student' %}">Register as a student</a>
+        {% endif %}
+      </p>
+      <p class="mt-2 text-sm text-slate-500">
+        Already have an account?
+        <a class="font-semibold text-brand-600" href="{% url 'login' %}">Log in</a>
+      </p>
+    </div>
   </div>
 {% endblock %}

@@ -1,0 +1,22 @@
+{% with url_name=request.resolver_match.url_name %}
+<nav class="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white lg:hidden" aria-label="Student">
+  <div class="mx-auto grid max-w-lg grid-cols-4 px-1 py-1 text-[11px] font-medium">
+    <a class="flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-[10px] py-2 {% if url_name == 'student_dashboard' %}text-brand-500{% else %}text-slate-500{% endif %}" href="{% url 'student_dashboard' %}">
+      {% include "partials/icon.html" with name="home" class="h-5 w-5" %}
+      Home
+    </a>
+    <a class="flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-[10px] py-2 {% if url_name == 'student_courses' %}text-brand-500{% else %}text-slate-500{% endif %}" href="{% url 'student_courses' %}">
+      {% include "partials/icon.html" with name="courses" class="h-5 w-5" %}
+      Courses
+    </a>
+    <a class="flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-[10px] py-2 {% if url_name == 'student_history' %}text-brand-500{% else %}text-slate-500{% endif %}" href="{% url 'student_history' %}">
+      {% include "partials/icon.html" with name="history" class="h-5 w-5" %}
+      History
+    </a>
+    <a class="flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-[10px] py-2 {% if url_name == 'profile' or url_name == 'password_change' %}text-brand-500{% else %}text-slate-500{% endif %}" href="{% url 'profile' %}">
+      {% include "partials/icon.html" with name="user" class="h-5 w-5" %}
+      Profile
+    </a>
+  </div>
+</nav>
+{% endwith %}

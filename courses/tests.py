@@ -130,6 +130,47 @@ class CourseTests(TestCase):
         self.assertRedirects(response, reverse("lecturer_dashboard"))
         self.assertFalse(Course.objects.filter(pk=course.pk).exists())
 
+    def test_dashboard_shows_presence_stats_not_enrolment(self):
+        self._create_course()
+        self.client.force_login(self.lecturer)
+        response = self.client.get(reverse("lecturer_dashboard"))
+        self.assertContains(response, "Start attendance")
+        self.assertContains(response, "Check-ins today")
+        self.assertNotContains(response, "Import Students")
+        self.assertNotContains(response, "Students Enrolled")
+
+    def test_students_page_has_no_roster_import(self):
+        self._create_course()
+        self.client.force_login(self.lecturer)
+        response = self.client.get(reverse("lecturer_students"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No students yet")
+        self.assertNotContains(response, "Import Students")
+        self.assertNotContains(response, "Add Student")
+
+    def test_student_cannot_open_lecturer_students(self):
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("lecturer_students"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_lecturer_can_open_session_layout(self):
+        course = self._create_course()
+        self.client.force_login(self.lecturer)
+        response = self.client.get(
+            reverse("course_session", args=[course.pk]) + "?duration=10&radius=100"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "End session")
+        self.assertContains(response, "0 present")
+        self.assertContains(response, "Not recording yet")
+        self.assertNotContains(response, "Import Students")
+
+    def test_other_lecturer_cannot_open_session_layout(self):
+        course = self._create_course()
+        self.client.force_login(self.other)
+        response = self.client.get(reverse("course_session", args=[course.pk]))
+        self.assertEqual(response.status_code, 404)
+
     def test_period_filter_defaults_to_latest_non_archived(self):
         self._create_course(academic_period="2025/2026 Second Semester")
         newer = self._create_course(

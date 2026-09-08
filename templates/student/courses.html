@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Courses · Present{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl font-semibold tracking-tight">My courses</h1>
+  <p class="mt-2 text-sm text-slate-500">Courses appear after you check in. You are not added from a lecturer roster.</p>
+
+  {% if participations %}
+    <ul class="mt-6 grid gap-3">
+      {% for row in participations %}
+        <li class="card">
+          <p class="text-sm font-semibold text-brand-600">{{ row.course.code }}</p>
+          <h2 class="mt-1 text-[16px] font-semibold">{{ row.course.name }}</h2>
+          <p class="mt-2 text-sm text-slate-500">{{ row.course.academic_period }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="card mt-6">
+      {% include "partials/empty_state.html" with title="No courses yet" description="Scan a session QR in class to appear on a course." icon="courses" %}
+    </div>
+  {% endif %}
+{% endblock %}

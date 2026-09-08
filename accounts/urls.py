@@ -54,4 +54,14 @@ urlpatterns = [
         views.StudentDashboardView.as_view(),
         name="student_dashboard",
     ),
+    path(
+        "student/courses/",
+        views.StudentCoursesView.as_view(),
+        name="student_courses",
+    ),
+    path(
+        "student/history/",
+        views.StudentHistoryView.as_view(),
+        name="student_history",
+    ),
 ]

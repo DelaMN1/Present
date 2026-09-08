@@ -1,0 +1,8 @@
+<a href="{{ href|default:'/' }}" class="flex items-center gap-2 {{ class }}">
+  <span class="flex h-9 w-9 items-center justify-center rounded-[10px] bg-brand-500 text-white">
+    {% include "partials/icon.html" with name="check" class="h-5 w-5" %}
+  </span>
+  {% if not mark_only %}
+    <span class="text-lg font-semibold tracking-tight">Present</span>
+  {% endif %}
+</a>
