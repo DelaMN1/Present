@@ -5,10 +5,15 @@ import sys
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "test":
-        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.test")
+    command = sys.argv[1] if len(sys.argv) > 1 else ""
+    if command == "test":
+        os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.test"
     else:
-        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
+        # Cursor (and some shells) export test settings. Never use those for
+        # runserver, migrate, or other non-test commands.
+        current = os.environ.get("DJANGO_SETTINGS_MODULE", "")
+        if not current or current == "config.settings.test":
+            os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.development"
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
