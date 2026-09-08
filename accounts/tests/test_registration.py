@@ -127,6 +127,21 @@ class RegistrationTests(TestCase):
         )
         self.assertRedirects(response, reverse("lecturer_dashboard"))
 
+    def test_student_dashboard_and_tabs_load(self):
+        user = UserModel.objects.create_user(
+            email="ama@st.ug.edu.gh",
+            password="Str0ng-present-pass",
+            role=User.Role.STUDENT,
+            first_name="Ama",
+        )
+        StudentProfile.objects.create(user=user, student_id="10982346")
+        self.client.force_login(user)
+        dashboard = self.client.get(reverse("student_dashboard"))
+        self.assertEqual(dashboard.status_code, 200)
+        self.assertContains(dashboard, "Here's your attendance overview")
+        self.assertEqual(self.client.get(reverse("student_courses")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("student_history")).status_code, 200)
+
     def test_student_cannot_open_lecturer_dashboard(self):
         user = UserModel.objects.create_user(
             email="ama@st.ug.edu.gh",

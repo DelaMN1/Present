@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Reports · Present{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block page_subtitle %}
+  <p class="mt-1 text-sm text-slate-500">Export a presence log after you have run sessions.</p>
+{% endblock %}
+
+{% block content %}
+  <div class="card">
+    {% include "partials/empty_state.html" with title="No reports yet" description="CSV export will list who checked in. It is a presence log to reconcile with your class list, not an official register." icon="chart" %}
+    <button type="button" class="btn-secondary mt-5" disabled>Export CSV</button>
+  </div>
+{% endblock %}

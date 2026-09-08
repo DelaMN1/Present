@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
 {% block title %}Delete {{ course.code }} · Present{% endblock %}
+{% block page_title %}Delete {{ course.code }}{% endblock %}
 
 {% block content %}
   <div class="mx-auto max-w-md">
-    <h1 class="text-2xl font-semibold tracking-tight">Delete {{ course.code }}</h1>
-    <p class="mt-3 text-sm text-zinc-600">
+    <p class="text-sm text-slate-600">
       This removes the course and any future attendance records for it. Type
-      <span class="font-medium text-zinc-900">{{ course.code }}</span>
+      <span class="font-medium text-ink">{{ course.code }}</span>
       to confirm.
     </p>
     <form method="post" class="card mt-6 space-y-4">
@@ -18,7 +18,7 @@
         {{ form.confirmation.errors }}
       </div>
       <div class="flex gap-3">
-        <button type="submit" class="btn-primary">Delete course</button>
+        <button type="submit" class="btn-danger">Delete course</button>
         <a class="btn-secondary" href="{% url 'course_detail' course.pk %}">Cancel</a>
       </div>
     </form>

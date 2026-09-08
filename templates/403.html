@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 
 {% block title %}Not allowed · Present{% endblock %}
+{% block page_title %}You cannot open this page{% endblock %}
 
 {% block content %}
-  <h1 class="text-2xl font-semibold tracking-tight">You cannot open this page</h1>
-  <p class="mt-2 text-zinc-600">This area is for a different kind of account.</p>
+  <div class="card max-w-lg">
+    <p class="text-slate-600">This area is for a different kind of account.</p>
+    <a class="btn-primary mt-5" href="{% url 'home' %}">Back to Present</a>
+  </div>
 {% endblock %}

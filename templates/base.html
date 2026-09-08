@@ -5,43 +5,70 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}Present{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="{% static 'css/output.css' %}" />
   </head>
-  <body class="min-h-screen">
-    <header class="border-b border-zinc-200 bg-white">
-      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-        <a href="{% url 'home' %}" class="text-lg font-semibold tracking-tight">Present</a>
-        <nav class="flex items-center gap-4 text-sm">
-          {% if user.is_authenticated %}
-            {% if user.is_lecturer %}
-              <a class="text-zinc-600 hover:text-zinc-900" href="{% url 'lecturer_dashboard' %}">Dashboard</a>
-              <a class="text-zinc-600 hover:text-zinc-900" href="{% url 'course_list' %}">Courses</a>
-            {% else %}
-              <a class="text-zinc-600 hover:text-zinc-900" href="{% url 'student_dashboard' %}">Dashboard</a>
-            {% endif %}
-            <a class="text-zinc-600 hover:text-zinc-900" href="{% url 'profile' %}">Profile</a>
-            <span class="hidden text-zinc-500 sm:inline">{{ user.display_name }}</span>
-            <form method="post" action="{% url 'logout' %}">
-              {% csrf_token %}
-              <button type="submit" class="text-zinc-600 hover:text-zinc-900">Log out</button>
-            </form>
-          {% else %}
-            <a class="text-zinc-600 hover:text-zinc-900" href="{% url 'login' %}">Log in</a>
+  <body class="min-h-screen bg-canvas text-ink">
+    {% block body %}
+    {% if user.is_authenticated and user.is_lecturer %}
+      {% include "partials/lecturer_sidebar.html" %}
+      <div class="lg:pl-60">
+        <header class="sticky top-0 z-10 border-b border-line bg-white/90 px-4 py-4 backdrop-blur sm:px-8">
+          {% block header %}
+            <div class="mx-auto flex max-w-content items-center justify-between gap-4">
+              <div class="min-w-0">
+                <h1 class="text-xl font-semibold tracking-tight sm:text-[28px]">{% block page_title %}Present{% endblock %}</h1>
+                {% block page_subtitle %}{% endblock %}
+              </div>
+              <div class="flex shrink-0 items-center gap-2">{% block page_actions %}{% endblock %}</div>
+            </div>
+          {% endblock %}
+        </header>
+        <main class="mx-auto max-w-content px-4 py-6 sm:px-8 sm:py-8">
+    {% elif user.is_authenticated and user.is_student %}
+      <header class="border-b border-line bg-white px-4 py-3">
+        <div class="mx-auto flex max-w-lg items-center justify-between">
+          {% url 'student_dashboard' as student_home %}
+          {% include "partials/brand.html" with href=student_home %}
+          <nav class="hidden items-center gap-4 text-sm font-medium text-slate-600 lg:flex">
+            <a class="hover:text-ink" href="{% url 'student_dashboard' %}">Home</a>
+            <a class="hover:text-ink" href="{% url 'student_courses' %}">Courses</a>
+            <a class="hover:text-ink" href="{% url 'student_history' %}">History</a>
+            <a class="hover:text-ink" href="{% url 'profile' %}">Profile</a>
+          </nav>
+        </div>
+      </header>
+      <main class="mx-auto max-w-lg px-4 py-6 pb-24 lg:pb-10">
+    {% else %}
+      <header class="border-b border-line bg-white">
+        <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+          {% url 'home' as home_url %}
+          {% include "partials/brand.html" with href=home_url %}
+          <nav class="flex items-center gap-3 text-sm">
+            <a class="font-medium text-slate-600 hover:text-ink" href="{% url 'login' %}">Log in</a>
             <a class="btn-primary" href="{% url 'register_student' %}">Create account</a>
-          {% endif %}
-        </nav>
+          </nav>
+        </div>
+      </header>
+      <main class="mx-auto max-w-5xl px-4 py-10">
+    {% endif %}
+          {% include "partials/toasts.html" %}
+          {% block content %}{% endblock %}
+        </main>
+    {% if user.is_authenticated and user.is_lecturer %}
       </div>
-    </header>
+    {% elif user.is_authenticated and user.is_student %}
+      {% include "partials/student_tabbar.html" %}
+    {% endif %}
+    {% endblock %}
 
-    <main class="mx-auto max-w-5xl px-4 py-10">
-      {% if messages %}
-        <ul class="mb-6 space-y-2">
-          {% for message in messages %}
-            <li class="rounded-md border border-zinc-200 bg-white px-4 py-3 text-sm">{{ message }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-      {% block content %}{% endblock %}
-    </main>
+    <script src="{% static 'js/modal.js' %}" defer></script>
+    <script src="{% static 'js/toast.js' %}" defer></script>
+    <script src="{% static 'js/nav.js' %}" defer></script>
+    <script src="{% static 'js/chips.js' %}" defer></script>
+    <script src="{% static 'js/session.js' %}" defer></script>
+    {% block extra_js %}{% endblock %}
   </body>
 </html>

@@ -1,23 +1,61 @@
 {% extends "base.html" %}
 
 {% block title %}{{ course.code }} · Present{% endblock %}
+{% block page_title %}{{ course.code }}{% endblock %}
+{% block page_subtitle %}
+  <p class="mt-1 text-sm text-slate-500">{{ course.name }} · {{ course.participant_count }} checked in · {{ course.session_count }} sessions</p>
+{% endblock %}
+{% block page_actions %}
+  {% if not course.is_archived %}
+    <button
+      type="button"
+      class="btn-primary"
+      data-modal-open="start-attendance-modal"
+      data-course-code="{{ course.code }}"
+      data-course-name="{{ course.name }}"
+      data-session-url="{% url 'course_session' course.pk %}"
+    >
+      Start attendance
+    </button>
+  {% endif %}
+{% endblock %}
 
 {% block content %}
-  <p class="text-sm text-zinc-500">
-    <a class="hover:underline" href="{% url 'lecturer_dashboard' %}">Courses</a>
-    <span class="mx-1">/</span>
-    {{ course.code }}
-  </p>
-  <div class="mt-4 flex flex-wrap items-start justify-between gap-4">
-    <div>
-      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">{{ course.code }}</p>
-      <h1 class="mt-1 text-3xl font-semibold tracking-tight">{{ course.name }}</h1>
-      <p class="mt-2 text-zinc-600">{{ course.academic_period }}</p>
-      {% if course.is_archived %}
-        <p class="mt-2 text-sm font-medium text-zinc-500">Archived — hidden from the default dashboard.</p>
-      {% endif %}
-    </div>
-    <div class="flex flex-wrap gap-2">
+  <div class="flex flex-wrap gap-2 border-b border-line">
+    <a class="border-b-2 px-3 py-2.5 text-sm font-medium {% if tab == 'overview' %}border-brand-500 text-brand-600{% else %}border-transparent text-slate-500 hover:text-ink{% endif %}" href="?tab=overview">Overview</a>
+    <a class="border-b-2 px-3 py-2.5 text-sm font-medium {% if tab == 'students' %}border-brand-500 text-brand-600{% else %}border-transparent text-slate-500 hover:text-ink{% endif %}" href="?tab=students">Students</a>
+    <a class="border-b-2 px-3 py-2.5 text-sm font-medium {% if tab == 'attendance' %}border-brand-500 text-brand-600{% else %}border-transparent text-slate-500 hover:text-ink{% endif %}" href="?tab=attendance">Attendance</a>
+    <a class="border-b-2 px-3 py-2.5 text-sm font-medium {% if tab == 'sessions' %}border-brand-500 text-brand-600{% else %}border-transparent text-slate-500 hover:text-ink{% endif %}" href="?tab=sessions">Sessions</a>
+  </div>
+
+  {% if tab == "overview" %}
+    <section class="mt-6 grid gap-3 sm:grid-cols-3">
+      <article class="stat-card">
+        <p class="text-sm text-slate-500">Checked in</p>
+        <p class="mt-2 text-3xl font-semibold tracking-tight">{{ course.participant_count }}</p>
+      </article>
+      <article class="stat-card">
+        <p class="text-sm text-slate-500">Sessions</p>
+        <p class="mt-2 text-3xl font-semibold tracking-tight">{{ course.session_count }}</p>
+      </article>
+      <article class="stat-card">
+        <p class="text-sm text-slate-500">Period</p>
+        <p class="mt-2 text-lg font-semibold tracking-tight">{{ course.academic_period }}</p>
+      </article>
+    </section>
+
+    {% if course.description %}
+      <div class="card mt-6">
+        <h2 class="text-sm font-medium text-slate-500">Description</h2>
+        <p class="mt-2 whitespace-pre-wrap text-slate-800">{{ course.description }}</p>
+      </div>
+    {% endif %}
+
+    {% if course.is_archived %}
+      <p class="mt-6 text-sm font-medium text-slate-500">Archived — hidden from the default dashboard.</p>
+    {% endif %}
+
+    <div class="mt-6 flex flex-wrap gap-2">
       <a class="btn-secondary" href="{% url 'course_edit' course.pk %}">Edit</a>
       <form method="post" action="{% url 'course_archive' course.pk %}">
         {% csrf_token %}
@@ -25,22 +63,45 @@
           {% if course.is_archived %}Restore{% else %}Archive{% endif %}
         </button>
       </form>
-      <a class="btn-secondary" href="{% url 'course_delete' course.pk %}">Delete</a>
+      <a class="btn-danger" href="{% url 'course_delete' course.pk %}">Delete</a>
     </div>
-  </div>
-
-  {% if course.description %}
-    <div class="card mt-8">
-      <h2 class="text-sm font-medium text-zinc-500">Description</h2>
-      <p class="mt-2 whitespace-pre-wrap text-zinc-800">{{ course.description }}</p>
+  {% elif tab == "students" %}
+    <div class="mt-6">
+      {% if participants %}
+        <ul class="divide-y divide-line overflow-hidden rounded-card border border-line bg-white shadow-card">
+          {% for row in participants %}
+            <li class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+              <div>
+                <p class="font-medium">{{ row.student.display_name }}</p>
+                <p class="text-sm text-slate-500">{{ row.student.student_profile.student_id }}</p>
+              </div>
+              <p class="text-sm text-slate-500">First seen {{ row.first_seen_at|date:"j M Y" }}</p>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="card">
+          {% include "partials/empty_state.html" with title="No students yet" description="Students appear here when they check in. There is no class list to import." icon="users" %}
+        </div>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="card mt-6">
+      {% include "partials/empty_state.html" with title="No attendance sessions yet" description="Start attendance when students are in the room. Present keeps a presence log, not an official register." icon="calendar" %}
+      {% if not course.is_archived %}
+        <button
+          type="button"
+          class="btn-primary mt-5"
+          data-modal-open="start-attendance-modal"
+          data-course-code="{{ course.code }}"
+          data-course-name="{{ course.name }}"
+          data-session-url="{% url 'course_session' course.pk %}"
+        >
+          Start attendance
+        </button>
+      {% endif %}
     </div>
   {% endif %}
 
-  <div class="card mt-8">
-    <h2 class="text-lg font-semibold">Attendance</h2>
-    <p class="mt-2 text-sm text-zinc-600">
-      Sessions will appear here. Starting attendance is the next phase.
-    </p>
-    <button type="button" class="btn-primary mt-4 cursor-not-allowed opacity-60" disabled>Start attendance</button>
-  </div>
+  {% include "partials/start_attendance_modal.html" %}
 {% endblock %}

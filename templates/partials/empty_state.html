@@ -1,0 +1,12 @@
+<div class="text-center">
+  <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl {% if tone == 'success' %}bg-emerald-50 text-emerald-600{% elif tone == 'danger' %}bg-red-50 text-red-600{% else %}bg-brand-50 text-brand-600{% endif %}">
+    {% include "partials/icon.html" with name=icon|default:"courses" class="h-6 w-6" %}
+  </div>
+  <h2 class="mt-4 text-lg font-semibold tracking-tight">{{ title }}</h2>
+  {% if description %}
+    <p class="mx-auto mt-2 max-w-sm text-sm text-slate-500">{{ description }}</p>
+  {% endif %}
+  {% if action_href and action_label %}
+    <a class="btn-primary mt-5" href="{{ action_href }}">{{ action_label }}</a>
+  {% endif %}
+</div>

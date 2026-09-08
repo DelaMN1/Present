@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.db.models import QuerySet
+from django.db.models import Count, IntegerField, Q, QuerySet, Value
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
@@ -7,17 +7,34 @@ from django.views.generic import (
     DetailView,
     FormView,
     ListView,
+    TemplateView,
     UpdateView,
     View,
 )
 
 from accounts.mixins import LecturerRequiredMixin
 from courses.forms import CourseDeleteForm, CourseForm
-from courses.models import Course
+from courses.models import Course, CourseParticipant
+
+SESSION_DURATIONS = {"5", "10", "15", "20"}
+SESSION_RADII = {"50", "100", "150", "200"}
 
 
 def lecturer_courses(user) -> QuerySet[Course]:
-    return Course.objects.filter(lecturer=user)
+    return Course.objects.filter(lecturer=user).annotate(
+        participant_count=Count("participants", distinct=True),
+        session_count=Value(0, output_field=IntegerField()),
+    )
+
+
+def session_options(request):
+    duration = request.GET.get("duration", "10")
+    radius = request.GET.get("radius", "100")
+    if duration not in SESSION_DURATIONS:
+        duration = "10"
+    if radius not in SESSION_RADII:
+        radius = "100"
+    return int(duration), int(radius)
 
 
 class LecturerCourseQuerysetMixin(LecturerRequiredMixin):
@@ -45,7 +62,7 @@ class LecturerDashboardView(LecturerCourseQuerysetMixin, ListView):
 
     def _periods(self):
         return list(
-            lecturer_courses(self.request.user)
+            Course.objects.filter(lecturer=self.request.user)
             .order_by("academic_period")
             .values_list("academic_period", flat=True)
             .distinct()
@@ -53,14 +70,17 @@ class LecturerDashboardView(LecturerCourseQuerysetMixin, ListView):
 
     def _default_period(self):
         latest = (
-            lecturer_courses(self.request.user)
-            .filter(is_archived=False)
+            Course.objects.filter(lecturer=self.request.user, is_archived=False)
             .order_by("-created_at")
             .first()
         )
         if latest:
             return latest.academic_period
-        latest_any = lecturer_courses(self.request.user).order_by("-created_at").first()
+        latest_any = (
+            Course.objects.filter(lecturer=self.request.user)
+            .order_by("-created_at")
+            .first()
+        )
         return latest_any.academic_period if latest_any else ""
 
     def get_context_data(self, **kwargs):
@@ -71,10 +91,21 @@ class LecturerDashboardView(LecturerCourseQuerysetMixin, ListView):
             selected = self.request.GET.get("period") or ""
         else:
             selected = "" if show_archived else self._default_period()
+        owned = lecturer_courses(self.request.user)
         context["periods"] = periods
         context["selected_period"] = selected
         context["show_archived"] = show_archived
-        context["has_any_courses"] = lecturer_courses(self.request.user).exists()
+        context["has_any_courses"] = owned.exists()
+        context["active_course_count"] = owned.filter(is_archived=False).count()
+        context["archived_course_count"] = owned.filter(is_archived=True).count()
+        context["participant_count"] = (
+            CourseParticipant.objects.filter(course__lecturer=self.request.user)
+            .values("student")
+            .distinct()
+            .count()
+        )
+        context["sessions_today_count"] = 0
+        context["checkins_today_count"] = 0
         return context
 
 
@@ -105,6 +136,17 @@ class CourseCreateView(LecturerRequiredMixin, CreateView):
 class CourseDetailView(LecturerCourseQuerysetMixin, DetailView):
     template_name = "courses/course_detail.html"
     context_object_name = "course"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        tab = self.request.GET.get("tab", "overview")
+        if tab not in {"overview", "students", "attendance", "sessions"}:
+            tab = "overview"
+        context["tab"] = tab
+        context["participants"] = self.object.participants.select_related(
+            "student", "student__student_profile"
+        )
+        return context
 
 
 class CourseUpdateView(LecturerCourseQuerysetMixin, UpdateView):
@@ -162,3 +204,73 @@ class CourseDeleteView(LecturerCourseQuerysetMixin, FormView):
         self.course.delete()
         messages.success(self.request, f"{code} deleted.")
         return redirect("lecturer_dashboard")
+
+
+class LecturerStudentsView(LecturerRequiredMixin, TemplateView):
+    template_name = "lecturer/students.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        qs = CourseParticipant.objects.filter(
+            course__lecturer=self.request.user
+        ).select_related("student", "student__student_profile", "course")
+        q = (self.request.GET.get("q") or "").strip()
+        course_filter = self.request.GET.get("course") or ""
+        if q:
+            qs = qs.filter(
+                Q(student__first_name__icontains=q)
+                | Q(student__last_name__icontains=q)
+                | Q(student__email__icontains=q)
+                | Q(student__student_profile__student_id__icontains=q)
+            )
+        if course_filter:
+            qs = qs.filter(course_id=course_filter)
+        context["participants"] = qs
+        context["courses"] = lecturer_courses(self.request.user).filter(is_archived=False)
+        context["q"] = q
+        context["course_filter"] = course_filter
+        return context
+
+
+class LecturerAttendanceView(LecturerRequiredMixin, TemplateView):
+    template_name = "lecturer/attendance.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["courses"] = lecturer_courses(self.request.user).filter(is_archived=False)
+        return context
+
+
+class LecturerReportsView(LecturerRequiredMixin, TemplateView):
+    template_name = "lecturer/reports.html"
+
+
+class LecturerHelpView(LecturerRequiredMixin, TemplateView):
+    template_name = "lecturer/help.html"
+
+
+class CourseSessionView(LecturerCourseQuerysetMixin, DetailView):
+    template_name = "lecturer/session_live.html"
+    context_object_name = "course"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        duration, radius = session_options(self.request)
+        context["duration"] = duration
+        context["radius"] = radius
+        context["duration_seconds"] = duration * 60
+        context["present_count"] = 0
+        return context
+
+
+class CourseSessionEndedView(LecturerCourseQuerysetMixin, DetailView):
+    template_name = "lecturer/session_ended.html"
+    context_object_name = "course"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        duration, radius = session_options(self.request)
+        context["duration"] = duration
+        context["radius"] = radius
+        context["present_count"] = 0
+        return context

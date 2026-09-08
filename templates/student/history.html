@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}History · Present{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl font-semibold tracking-tight">Attendance history</h1>
+  <p class="mt-2 text-sm text-slate-500">Your check-ins will list here after you scan a session QR.</p>
+  <div class="card mt-6">
+    {% include "partials/empty_state.html" with title="No check-ins yet" description="When a lecturer starts attendance, scan the QR from your phone." icon="history" %}
+  </div>
+{% endblock %}

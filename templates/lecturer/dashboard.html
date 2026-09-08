@@ -2,63 +2,113 @@
 
 {% block title %}Dashboard · Present{% endblock %}
 
+{% block page_title %}{{ greeting }}, {{ user.first_name|default:user.display_name }}{% endblock %}
+{% block page_subtitle %}
+  <p class="mt-1 text-sm text-slate-500">{{ today|date:"l, j F Y" }}</p>
+{% endblock %}
+{% block page_actions %}
+  <a class="btn-primary hidden sm:inline-flex" href="{% url 'course_create' %}">
+    {% include "partials/icon.html" with name="plus" class="h-4 w-4" %}
+    Create course
+  </a>
+{% endblock %}
+
 {% block content %}
-  <div class="flex flex-wrap items-end justify-between gap-4">
-    <div>
-      <h1 class="text-3xl font-semibold tracking-tight">Good day, {{ user.display_name }}</h1>
-      <p class="mt-2 text-zinc-600">Start from a course. Students will appear when they scan.</p>
-    </div>
-    <a class="btn-primary" href="{% url 'course_create' %}">Create course</a>
-  </div>
+  <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <article class="stat-card">
+      <p class="text-sm text-slate-500">Courses</p>
+      <p class="mt-2 text-3xl font-semibold tracking-tight">{{ active_course_count }}</p>
+      <p class="mt-1 text-xs text-slate-400">Active</p>
+    </article>
+    <article class="stat-card">
+      <p class="text-sm text-slate-500">Students</p>
+      <p class="mt-2 text-3xl font-semibold tracking-tight">{{ participant_count }}</p>
+      <p class="mt-1 text-xs text-slate-400">Checked in</p>
+    </article>
+    <article class="stat-card">
+      <p class="text-sm text-slate-500">Sessions</p>
+      <p class="mt-2 text-3xl font-semibold tracking-tight">{{ sessions_today_count }}</p>
+      <p class="mt-1 text-xs text-slate-400">Today</p>
+    </article>
+    <article class="stat-card">
+      <p class="text-sm text-slate-500">Check-ins today</p>
+      <p class="mt-2 text-3xl font-semibold tracking-tight">{{ checkins_today_count }}</p>
+      <p class="mt-1 text-xs text-slate-400">Presence log</p>
+    </article>
+  </section>
 
   {% if has_any_courses %}
     <form method="get" class="mt-8 flex flex-wrap items-end gap-4">
       <div>
-        <label class="mb-1 block text-sm font-medium" for="period">Academic period</label>
-        <select class="input w-64" id="period" name="period" onchange="this.form.submit()">
+        <label class="mb-1 block text-sm font-medium text-slate-600" for="period">Academic period</label>
+        <select class="input w-72" id="period" name="period" onchange="this.form.submit()">
           <option value="" {% if not selected_period %}selected{% endif %}>All periods</option>
           {% for period in periods %}
             <option value="{{ period }}" {% if period == selected_period %}selected{% endif %}>{{ period }}</option>
           {% endfor %}
         </select>
       </div>
-      <label class="flex items-center gap-2 pb-2 text-sm text-zinc-700">
-        <input type="checkbox" name="archived" value="1" {% if show_archived %}checked{% endif %} onchange="this.form.submit()" />
+      <label class="flex min-h-11 items-center gap-2 text-sm text-slate-600">
+        <input type="checkbox" name="archived" value="1" class="rounded border-slate-300 text-brand-500 focus:ring-brand-500" {% if show_archived %}checked{% endif %} onchange="this.form.submit()" />
         Show archived
       </label>
     </form>
   {% endif %}
 
+  <div class="mt-8 flex items-center justify-between">
+    <h2 class="text-lg font-semibold tracking-tight">Today's classes</h2>
+    <a class="sm:hidden text-sm font-semibold text-brand-600" href="{% url 'course_create' %}">Create</a>
+  </div>
+
   {% if not has_any_courses %}
-    <div class="card mt-8">
-      <h2 class="text-lg font-semibold">You don't have any courses yet.</h2>
-      <p class="mt-2 text-sm text-zinc-600">Create your first course to get started.</p>
-      <a class="btn-primary mt-4" href="{% url 'course_create' %}">Create course</a>
+    <div class="card mt-4">
+      {% url 'course_create' as create_url %}
+      {% include "partials/empty_state.html" with title="No courses yet" description="Create your first course to start taking attendance." action_href=create_url action_label="Create course" icon="courses" %}
     </div>
   {% elif not courses %}
-    <div class="card mt-8">
-      <p class="text-sm text-zinc-600">No courses in this view. Try another period or show archived courses.</p>
+    <div class="card mt-4">
+      <p class="text-sm text-slate-600">No courses in this view. Try another period or show archived courses.</p>
     </div>
   {% else %}
-    <ul class="mt-8 grid gap-4">
+    <ul class="mt-4 grid gap-3">
       {% for course in courses %}
-        <li class="card flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">{{ course.code }}</p>
-            <h2 class="mt-1 text-xl font-semibold">
-              <a class="hover:underline" href="{% url 'course_detail' course.pk %}">{{ course.name }}</a>
-            </h2>
-            <p class="mt-1 text-sm text-zinc-600">{{ course.academic_period }}</p>
-            {% if course.is_archived %}
-              <p class="mt-2 text-xs font-medium text-zinc-500">Archived</p>
-            {% endif %}
+        <li class="card flex flex-wrap items-center justify-between gap-4">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-semibold text-brand-600">{{ course.code }}</p>
+              {% if course.is_archived %}<span class="badge-muted">Archived</span>{% endif %}
+            </div>
+            <h3 class="mt-1 truncate text-[16px] font-semibold">
+              <a class="hover:text-brand-600" href="{% url 'course_detail' course.pk %}">{{ course.name }}</a>
+            </h3>
+            <p class="mt-1 text-sm text-slate-500">{{ course.academic_period }} · {{ course.participant_count }} checked in</p>
           </div>
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <a class="btn-secondary" href="{% url 'course_detail' course.pk %}">Open</a>
-            <button type="button" class="btn-secondary cursor-not-allowed opacity-60" disabled title="Attendance sessions come in the next phase">Start attendance</button>
+            {% if not course.is_archived %}
+              <button
+                type="button"
+                class="btn-primary"
+                data-modal-open="start-attendance-modal"
+                data-course-code="{{ course.code }}"
+                data-course-name="{{ course.name }}"
+                data-session-url="{% url 'course_session' course.pk %}"
+              >
+                Start attendance
+              </button>
+            {% endif %}
           </div>
         </li>
       {% endfor %}
     </ul>
   {% endif %}
+
+  <section class="mt-10">
+    <h2 class="text-lg font-semibold tracking-tight">Recent sessions</h2>
+    <div class="card mt-4">
+      {% include "partials/empty_state.html" with title="No attendance sessions yet" description="Start attendance when students are in the room. Present records who checked in, not who is on a class list." icon="calendar" %}
+    </div>
+  </section>
+
+  {% include "partials/start_attendance_modal.html" %}
 {% endblock %}

@@ -25,6 +25,7 @@ from accounts.forms import (
 )
 from accounts.mixins import StudentRequiredMixin, redirect_for_role
 from accounts.models import LecturerProfile, User
+from courses.models import CourseParticipant
 
 
 class HomeView(TemplateView):
@@ -87,8 +88,25 @@ class LecturerRegisterView(RegisterView):
     role = User.Role.LECTURER
 
 
-class StudentDashboardView(StudentRequiredMixin, TemplateView):
+class StudentParticipationMixin(StudentRequiredMixin):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["participations"] = CourseParticipant.objects.filter(
+            student=self.request.user
+        ).select_related("course")
+        return context
+
+
+class StudentDashboardView(StudentParticipationMixin, TemplateView):
     template_name = "student/dashboard.html"
+
+
+class StudentCoursesView(StudentParticipationMixin, TemplateView):
+    template_name = "student/courses.html"
+
+
+class StudentHistoryView(StudentRequiredMixin, TemplateView):
+    template_name = "student/history.html"
 
 
 class PresentPasswordResetView(PasswordResetView):

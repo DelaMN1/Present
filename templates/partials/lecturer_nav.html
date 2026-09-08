@@ -1,0 +1,35 @@
+{% with url_name=request.resolver_match.url_name %}
+<nav class="flex flex-1 flex-col gap-1 px-3" aria-label="Lecturer">
+  <p class="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Overview</p>
+  <a class="{% if url_name == 'lecturer_dashboard' %}nav-link-active{% else %}nav-link{% endif %}" href="{% url 'lecturer_dashboard' %}">
+    {% include "partials/icon.html" with name="home" class="h-5 w-5" %}
+    Dashboard
+  </a>
+  <a class="{% if url_name == 'course_list' or url_name == 'course_detail' or url_name == 'course_create' or url_name == 'course_edit' or url_name == 'course_delete' %}nav-link-active{% else %}nav-link{% endif %}" href="{% url 'course_list' %}">
+    {% include "partials/icon.html" with name="courses" class="h-5 w-5" %}
+    Courses
+  </a>
+  <a class="{% if url_name == 'lecturer_students' %}nav-link-active{% else %}nav-link{% endif %}" href="{% url 'lecturer_students' %}">
+    {% include "partials/icon.html" with name="users" class="h-5 w-5" %}
+    Students
+  </a>
+  <a class="{% if url_name == 'lecturer_attendance' or url_name == 'course_session' or url_name == 'course_session_ended' %}nav-link-active{% else %}nav-link{% endif %}" href="{% url 'lecturer_attendance' %}">
+    {% include "partials/icon.html" with name="calendar" class="h-5 w-5" %}
+    Attendance
+  </a>
+  <a class="{% if url_name == 'lecturer_reports' %}nav-link-active{% else %}nav-link{% endif %}" href="{% url 'lecturer_reports' %}">
+    {% include "partials/icon.html" with name="chart" class="h-5 w-5" %}
+    Reports
+  </a>
+
+  <p class="px-3 pb-2 pt-6 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Account</p>
+  <a class="{% if url_name == 'profile' or url_name == 'password_change' %}nav-link-active{% else %}nav-link{% endif %}" href="{% url 'profile' %}">
+    {% include "partials/icon.html" with name="settings" class="h-5 w-5" %}
+    Settings
+  </a>
+  <a class="{% if url_name == 'lecturer_help' %}nav-link-active{% else %}nav-link{% endif %}" href="{% url 'lecturer_help' %}">
+    {% include "partials/icon.html" with name="help" class="h-5 w-5" %}
+    Help &amp; Support
+  </a>
+</nav>
+{% endwith %}

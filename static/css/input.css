@@ -8,36 +8,121 @@
   }
 
   body {
-    @apply bg-zinc-50 text-zinc-900;
+    @apply bg-canvas font-sans text-ink;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2;
   }
 }
 
 @layer components {
   .input {
-    @apply w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-none outline-none;
+    @apply w-full rounded-[10px] border border-line bg-white px-3.5 py-2.5 text-sm text-ink shadow-none outline-none transition duration-200 ease-out;
   }
 
   .input:focus {
-    @apply border-zinc-900 ring-1 ring-zinc-900;
+    @apply border-brand-500 ring-2 ring-brand-50;
+  }
+
+  .input-icon {
+    @apply pl-11;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-sm font-semibold transition duration-200 ease-out;
   }
 
   .btn-primary {
-    @apply btn bg-zinc-900 text-white hover:bg-zinc-800;
+    @apply btn bg-brand-500 text-white hover:bg-brand-600;
   }
 
   .btn-secondary {
-    @apply btn border border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-100;
+    @apply btn border border-line bg-white text-slate-700 hover:bg-slate-50;
+  }
+
+  .btn-danger {
+    @apply btn border border-red-200 bg-white text-red-600 hover:bg-red-50;
+  }
+
+  .btn-ghost {
+    @apply btn px-2 text-slate-500 hover:bg-slate-50 hover:text-ink;
+  }
+
+  .btn-disabled,
+  .btn:disabled {
+    @apply cursor-not-allowed opacity-50;
   }
 
   .card {
-    @apply rounded-lg border border-zinc-200 bg-white p-6;
+    @apply rounded-card border border-line bg-white p-5 shadow-card;
+  }
+
+  .stat-card {
+    @apply card py-4;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium text-slate-300 transition duration-200 ease-out hover:bg-white/5 hover:text-white;
+  }
+
+  .nav-link-active {
+    @apply nav-link bg-brand-500/20 text-white hover:bg-brand-500/20 hover:text-white;
   }
 
   .errorlist {
-    @apply mt-1 list-none text-sm text-red-700;
+    @apply mt-1 list-none text-sm text-red-600;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-emerald-50 text-emerald-700;
+  }
+
+  .badge-warning {
+    @apply badge bg-amber-50 text-amber-800;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-50 text-red-700;
+  }
+
+  .badge-muted {
+    @apply badge bg-slate-100 text-slate-600;
+  }
+
+  .chip {
+    @apply inline-flex min-h-11 min-w-[4.5rem] items-center justify-center rounded-[10px] border border-line bg-white px-3 py-2 text-sm font-medium text-slate-600 transition duration-200 ease-out hover:border-slate-300;
+  }
+
+  .chip-active {
+    @apply border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500;
+  }
+
+  .modal-backdrop {
+    @apply fixed inset-0 z-40 bg-slate-900/50 opacity-0 transition duration-200 ease-out;
+  }
+
+  .modal-backdrop.is-open {
+    @apply opacity-100;
+  }
+
+  .modal-panel {
+    @apply relative z-50 w-full max-w-lg rounded-2xl bg-white p-6 shadow-card;
+  }
+
+  .toast {
+    @apply pointer-events-auto flex items-start gap-3 rounded-card border border-line bg-white px-4 py-3 text-sm shadow-card;
+  }
+
+  .progress-bar {
+    @apply h-2 overflow-hidden rounded-full bg-slate-100;
+  }
+
+  .progress-bar > span {
+    @apply block h-full rounded-full bg-brand-500;
   }
 }
